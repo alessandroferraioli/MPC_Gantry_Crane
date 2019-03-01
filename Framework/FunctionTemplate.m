@@ -70,6 +70,21 @@ param.Md = Md;
 param.dStart = [0;0];
 
 
+%tilde system
+Atilde = [[A , Bd];[zeros(2,8) , eye(2)]];
+Ctilde = [C , Cd];
+Btilde = [B ; zeros(2)];
+addB = zeros(size(Btilde,1), size(Ctilde,2) -size(Btilde,2));
+
+
+disp('rank obsv (At,Ct)');
+disp(rank(obsv(Atilde,Ctilde)));
+
+param.Atilde = Atilde;
+param.Btilde = Btilde;
+param.Ctilde = Ctilde;
+
+
 %observator
 
 param.tolerance = 10^-2;
@@ -79,11 +94,22 @@ weightLTR=eye(8);
 Wx = sigma* (B)* (B');
 Wd = sigma * Bd' * (Bd);
 
+eigDes = eig(Atilde);
+eigDes(1) = 0.3;
+eigDes(2) = 0.4;
+eigDes(9) = 0.5;
+eigDes(10)= 0.6;
 L1 = dlqr(A',C' ,Wx , weightLTR)';
 L2 = dlqr(eye(2) , Cd' , Wd , weightLTR)';
 
-param.LTR_obsv = [L1 ; L2];
-
+L = place(Atilde',Ctilde',eigDes)';
+size(L)
+size(Atilde)
+size(Ctilde)
+size(Btilde)
+%param.LTR_obsv = [L1 ; L2];
+param.LTR_obsv = L;
+disp(eig(Atilde' - L*Ctilde));
 
 %input constraints
 inputConst  = 0.8 ;
@@ -192,8 +218,41 @@ if(x1 ~= x2 && x1~=x4)
     c2Upper = -x2*m2+y2;
 
 
-    %matrix of state constrait
-
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+% 
+%     c1Lower = -x1*m21+y1;
+%     c2Lower = -x4*m54+y4;
+% 
+%     c1Upper = -x6*m21+y6;
+%     c2Upper = -x3*m54+y3;
+% 
+%     
+%     
+%     D = zeros(6,8);
+%     
+%     D(1,1) = -m21;
+%     D(1,3) = 1;
+%     
+%     D(2,1) = -m54;
+%     D(2,3) = 1;
+%     
+%     D(3,1) = -m21;
+%     D(3,3) = 1;
+%     D(3,5) = -len*m21;
+%     D(3,7) = len;
+%     
+%     D(4,1) = -m54;
+%     D(4,3) = 1;
+%     D(4,5) = -len*m54;
+%     D(4,7) = len;
+%     +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    
+    
+    
+% 
+%     %matrix of state constrait
+% 
     D = zeros(6,8);
     
     D(1,1) = -m1;
@@ -257,7 +316,7 @@ end
 D(5,5) = 1;
 D(6,7) = 1;
 
-angleDegreeConst = deg2rad(2);
+angleDegreeConst = deg2rad(5);
 angleConstraint = [-angleDegreeConst , angleDegreeConst];
 cl1 = [c1Lower;c2Lower;c1Lower;c2Lower;angleConstraint(1);angleConstraint(1)];
 ch1 = [c1Upper;c2Upper;c1Upper;c2Upper;angleConstraint(2);angleConstraint(2)];
@@ -269,14 +328,14 @@ param.ch1 = ch1;
 param.D1 = D;
 
 
-cl2 = [c1Lower2;c2Lower2;c1Lower2;c2Lower2;angleConstraint(1);angleConstraint(1)];
-ch2 = [c1Upper2;c2Upper2;c1Upper2;c2Upper2;angleConstraint(2);angleConstraint(2)];
-
-
-param.cl2 = cl2;
-param.ch2 = ch2;
-
-param.D2 = D2;
+% cl2 = [c1Lower2;c2Lower2;c1Lower2;c2Lower2;angleConstraint(1);angleConstraint(1)];
+% ch2 = [c1Upper2;c2Upper2;c1Upper2;c2Upper2;angleConstraint(2);angleConstraint(2)];
+% 
+% 
+% param.cl2 = cl2;
+% param.ch2 = ch2;
+% 
+% param.D2 = D2;
 
 
 
@@ -303,14 +362,14 @@ H = chol(H,'lower');
 H=(H'\eye(size(H)))';
 
 
-%second rect
-[Dt2,Et2,bt2]=genStageConstraints(A,B,D2,cl2,ch2,ul,uh);
-[DD2,EE2,bb2]=genTrajectoryConstraints(Dt2,Et2,bt2,N);
-[Gamma,Phi] = genPrediction(A,B,N);
-[F2,J2,L2]=genConstraintMatrices(DD2,EE2,Gamma,Phi,N);
-[H,G] = genCostMatrices(Gamma,Phi,Q,R,P,N);       
-H = chol(H,'lower');
-H=(H'\eye(size(H)))';
+% %second rect
+% [Dt2,Et2,bt2]=genStageConstraints(A,B,D2,cl2,ch2,ul,uh);
+% [DD2,EE2,bb2]=genTrajectoryConstraints(Dt2,Et2,bt2,N);
+% [Gamma,Phi] = genPrediction(A,B,N);
+% [F2,J2,L2]=genConstraintMatrices(DD2,EE2,Gamma,Phi,N);
+% [H,G] = genCostMatrices(Gamma,Phi,Q,R,P,N);       
+% H = chol(H,'lower');
+% H=(H'\eye(size(H)))';
 
 
 param.H = H;
@@ -324,11 +383,11 @@ param.bb = bb;
 
 
 
-
-param.F2 = F2;
-param.J2 = J2;
-param.L2 = L2;
-param.bb2 = bb2;
+% 
+% param.F2 = F2;
+% param.J2 = J2;
+% param.L2 = L2;
+% param.bb2 = bb2;
 
 
 
@@ -378,6 +437,8 @@ else
     fprintf('Final Target');
     
 end
+%  xTar = param.xTar;
+%  yTar = param.yTar;
 
 
 
