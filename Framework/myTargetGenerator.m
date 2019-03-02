@@ -8,6 +8,8 @@ H(9,9) = 1; %min on ux
 H(10,10) = 1; %min on uy
 
 f = zeros(10,1);
+
+
 persistent changed
 if(isempty(changed))
     
@@ -20,40 +22,28 @@ if(changed == 0)
     if(dist < param.epsilonTarget)
         xTar = param.xTar;
         yTar = param.yTar;
-        fprintf('Final Target');
         changed = 1;
     else
         xTar = param.xTarSigned;
         yTar = param.yTarSigned;
-        fprintf('Middle Target Target');
-        
-    end
-    
+    end 
 else
         xTar = param.xTar;
         yTar = param.yTar;
-    fprintf('Final Target');
     
 end
+
 
 
 
 Aeq = [[eye(8) - param.A , -param.B];[param.Mx , zeros(2,2)]];
 beq = [param.Bd * dHat ; [xTar ; yTar] - param.Md*dHat ];
 
-
 Aineq = [-eye(10) ; eye(10)];
-
-
-%x xdot y ydot theta thetaDot phi phiDot 
-%x and y epsilon_t
-% x and y payload epsilon_t
-%velocity x/y and velocity theta/phi epsilon_r
-%input epsilon_r
-
 low = [-xTar+param.eps_t 0 -yTar+param.eps_t 0 param.angCond 0 param.angCond 0 -param.ul']';
 high = [xTar+param.eps_t param.eps_r yTar+param.eps_t param.eps_r param.angCond param.eps_r param.angCond param.eps_r param.uh']';
 bineq = [low+[param.Cd*dHat ; 0 ; 0] ; high-[param.Cd*dHat ; 0 ; 0] ];
+
 [r,~,flag] = quadprog(H,f,Aineq,bineq,Aeq,beq,[],[],[]);
 
 
@@ -63,7 +53,6 @@ if(flag == -2)
         Aineq = [[zeros(10,8) , [zeros(8,2) ; -eye(2)] ; [zeros(10,8) , [zeros(8,2) ; eye(2)]]]];
         bineq = [zeros(8,1) ; -param.ul ; zeros(8,1) ; param.uh];
         [r,~,flag] = quadprog(H,f,Aineq,bineq,[],[],[],[],[],[]);
-
     end
     
 end
