@@ -6,8 +6,9 @@ opt.IntegrityChecks = false;%% for code generation
 opt.FeasibilityTol = 1e-3;
 opt.DataType = 'double';
 
-currentX = x_hat(1:8);
 dHat = x_hat(9:10);
+currentX = x_hat(1:8) + param.Cd *dHat;
+
 uCurrentTarget = r(9:10);
 xCurrentTarget = r(1:8);
 
@@ -24,28 +25,32 @@ if(check == 0)
         F = param.F2;
         J = param.J2;
         L = param.L2;
+        EE = param.EE2;
         bb = param.bb2;
+        newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
         xStart(1) = param.xTarSigned;
         xStart(3) = param.yTarSigned;
-
-        check = 1;    
+        check = 1;
     else
         %First rect constr
         F = param.F;
         J = param.J;
         L = param.L;
         bb = param.bb;
+        EE = param.EE;
+        newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
         xStart = param.xStart;
     end
 else
     %Second rect constr
-        F = param.F2;
-        J = param.J2;
-        L = param.L2;
-        bb = param.bb2;
-
-        xStart(1) = param.xTarSigned;
-        xStart(3) = param.yTarSigned;
+    F = param.F2;
+    J = param.J2;
+    L = param.L2;
+    bb = param.bb2;
+    EE = param.EE2;
+    newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
+    xStart(1) = param.xTarSigned;
+    xStart(3) = param.yTarSigned;
 end
 
 
@@ -53,7 +58,7 @@ formatSpec = 'xHat =%f | yHat =%f | xT =%f | yT =%f | dtx =%f | dty =%f | utx =%
 fprintf(formatSpec,currentX(1),currentX(3),r(1),r(3) ,dHat(1) ,dHat(2) , uCurrentTarget(1),  uCurrentTarget(2))
 
 f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
-RHS = bb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
+RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
 iA = false(size(bb));
 [U,~,~]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
 

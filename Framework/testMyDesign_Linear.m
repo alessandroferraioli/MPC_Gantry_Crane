@@ -10,7 +10,7 @@ load('SSmodelParams.mat');
 
 
 %% Create the shape to test on
-testShape = generateShape();5
+testShape = generateShape();
 
 
 %% Extract the student functions

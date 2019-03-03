@@ -10,6 +10,13 @@ param.A = A;
 param.B = B;
 param.C = C;
 
+%1 nothing
+%2 state estimator
+%3 state estimator + disturbance estimator
+%4 state estimator + disturbance estimator + target calculator
+selectController = 4;
+param.selectController = selectController;
+
 %Measure matrices
 Mx = zeros(2,8);
 Mx(1,1) = 1; %measure of x
@@ -29,6 +36,7 @@ param.angCond = 0;
 param.K = [1, 0, 0, 0, 0, 0, 0, 0;
            0, 0, 1, 0, 0, 0, 0, 0];
 N =20;
+param.N = N;
 xTar = targetPoint(1);
 yTar = targetPoint(2);
 param.xTar = targetPoint(1);
@@ -95,23 +103,45 @@ sigma = 10^4;
 weightLTR=eye(8);
 Wx = sigma* (B)* (B');
 Wd = sigma * Bd' * (Bd);
+W = sigma * Btilde * Btilde';
+weight = eye(8);
 
 eigDes = eig(Atilde);
 eigDes(1) = 0.01;
 eigDes(2) = 0.02;
-eigDes(9) = 0.02;
-eigDes(10)= 0.03;
+eigDes(9) = 0.03;
+eigDes(10)= 0.04;
 L1 = dlqr(A',C' ,Wx , weightLTR)';
 L2 = dlqr(eye(2) , Cd' , Wd , weightLTR)';
 
-L = place(Atilde',Ctilde',eigDes)';
-size(L)
-size(Atilde)
-size(Ctilde)
-size(Btilde)
-%param.LTR_obsv = [L1 ; L2];
-param.LTR_obsv = L;
-disp(eig(Atilde' - L*Ctilde));
+L_LTR_tilde = dlqr(Atilde',Ctilde', eye(10) , weight)';
+L_LTR= [L1 ; L2];
+L_place = place(Atilde',Ctilde',eigDes)';
+
+if(selectController == 1)
+    param.LTR_obsv = L_LTR_tilde;%It is not used
+    
+end
+if(selectController ==2)
+    
+    param.LTR_obsv = L1;
+end
+
+if(selectController == 3 || selectController == 4)
+    param.LTR_obsv = L_LTR_tilde;
+end
+
+
+
+
+disp('Eigen value place');
+disp(eig(Atilde' - L_place*Ctilde));
+
+disp('Eigen value LTR tilde');
+disp(eig(Atilde' - L_LTR_tilde*Ctilde));
+
+disp('Eigen value LTR ');
+disp(eig(Atilde' - L_LTR*Ctilde));
 
 %input constraints
 inputConst  = 0.8 ;
@@ -240,8 +270,8 @@ param.D2 = D2;
 %+++++++++++++++++++++++++++++++++++++++++++matrix 1
 % Declare penalty matrices and tune them here:
 Q=C'*C;
-Q(1,1) = 5;
-Q(3,3) = 5;
+Q(1,1) = 3;
+Q(3,3) = 3;
 
 
 weightInput = 0.02;
@@ -253,7 +283,7 @@ P=Q; % terminal weight
 [Dt,Et,bt]=genStageConstraints(A,B,D,cl1,ch1,ul,uh);
 [DD,EE,bb]=genTrajectoryConstraints(Dt,Et,bt,N);
 [Gamma,Phi] = genPrediction(A,B,N);
-[F,J,L]=genConstraintMatrices(DD,EE,Gamma,Phi,N);
+[F,J,L_place]=genConstraintMatrices(DD,EE,Gamma,Phi,N);
 [H,G] = genCostMatrices(Gamma,Phi,Q,R,P,N);       
 H = chol(H,'lower');
 H=(H'\eye(size(H)))';
@@ -270,9 +300,10 @@ param.H = H;
 param.G = G;
 param.F = F;
 param.J = J;
-param.L = L;
+param.L = L_place;
 param.Gamma = Gamma;
 param.Phi = Phi;
+param.EE = EE;
 param.bb = bb;
 
 
@@ -281,6 +312,7 @@ param.F2 = F2;
 param.J2 = J2;
 param.L2 = L2;
 param.bb2 = bb2;
+param.EE2 = EE2;
 
 
 
