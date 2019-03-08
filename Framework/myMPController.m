@@ -12,56 +12,101 @@ currentX = x_hat(1:8) + param.Cd *dHat;
 uCurrentTarget = r(9:10);
 xCurrentTarget = r(1:8);
 
-persistent check
-if(isempty(check))
-   check = 0; 
+ul = param.ul + uCurrentTarget;
+uh = param.uh + uCurrentTarget;
+
+persistent checkChangeRect
+persistent checkCloseTar 
+
+if(isempty(checkCloseTar))
+   checkCloseTar = 0; 
+end
+
+if(isempty(checkChangeRect))
+   checkChangeRect = 0; 
 end
 
 dist = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
 xStart = zeros(8,1);
-if(check == 0)
+if(checkChangeRect == 0)
     if(dist < param.epsilonTarget)
         %Second rect constr
-        F = param.F2;
-        J = param.J2;
-        L = param.L2;
-        EE = param.EE2;
-        bb = param.bb2;
-        newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
+      
+        %Recalculate the constraits
+        [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
+        [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
+        [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
+%         
+%         F = param.F2;
+%         J = param.J2;
+%         L = param.L2;
+%         EE = param.EE2;
+%         bb = param.bb2;
+%         newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
+
         xStart(1) = param.xTarSigned;
         xStart(3) = param.yTarSigned;
-        check = 1;
+        checkChangeRect = 1;
     else
         %First rect constr
-        F = param.F;
-        J = param.J;
-        L = param.L;
-        bb = param.bb;
-        EE = param.EE;
-        newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
+        
+        %Recalculate the constraits 
+        [Dt,Et,bt]=genStageConstraints(param.A,param.B,param.D,param.cl1,param.ch1,ul,uh);
+        [DD,EE,newbb]=genTrajectoryConstraints(Dt,Et,bt,param.N);
+        [F,J,L]=genConstraintMatrices(DD,EE,param.Gamma,param.Phi,param.N);
+        
+%         F = param.F;
+%         J = param.J;
+%         L = param.L;
+%         bb = param.bb;
+%         EE = param.EE;
+%         newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
+
         xStart = param.xStart;
     end
 else
     %Second rect constr
-    F = param.F2;
-    J = param.J2;
-    L = param.L2;
-    bb = param.bb2;
-    EE = param.EE2;
-    newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
+    
+    
+        [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
+        [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
+        [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
+
+%         F = param.F2;
+%         J = param.J2;
+%         L = param.L2;
+%         EE = param.EE2;
+%         bb = param.bb2;
+%         newbb = bb - kron(ones(param.N,1),uCurrentTarget);
+
     xStart(1) = param.xTarSigned;
     xStart(3) = param.yTarSigned;
+
 end
 
 
-formatSpec = 'xHat =%f | yHat =%f | xT =%f | yT =%f | dtx =%f | dty =%f | utx =%f | uty =%f \n';
-fprintf(formatSpec,currentX(1),currentX(3),r(1),r(3) ,dHat(1) ,dHat(2) , uCurrentTarget(1),  uCurrentTarget(2))
-
 f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
 RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
-iA = false(size(bb));
+iA = false(size(newbb));
 [U,~,~]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
 
 u =U(1:param.m,:);
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%saturation of the input
+if(abs(u(1)) < param.toleranceInput)
+   u(1) = 0; 
+end
+if(abs(u(2)) < param.toleranceInput)
+   u(2) = 0; 
+end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
+if(dist < param.closeToTarget || checkCloseTar == 1)
+   u = zeros(2,1);%stop do everything 
+   checkCloseTar = 1;
+end
 
+formatSpec = 'MPC Controller ux=%f | uy=%f\n';
+fprintf(formatSpec,u(1),u(2));
+fprintf('------------------------------\n');
 end % End of myMPController

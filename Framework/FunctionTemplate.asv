@@ -589,7 +589,7 @@ if(checkChangeRect == 0)
         xStart = param.xStart;
     end
 else
-        %Second rect constr
+    %Second rect constr
         [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
         [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
         [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);

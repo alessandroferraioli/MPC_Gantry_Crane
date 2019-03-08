@@ -27,7 +27,7 @@ xZero = testShape.start(1,1);
 yZero = testShape.start(1,2);
 
 %% Set the simulation time
-T = 30;
+T = 20;
 N=ceil(T/Ts);
 
 %% Call the setup function for the student

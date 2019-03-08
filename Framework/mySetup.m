@@ -28,8 +28,11 @@ Md = eye(2);
 param.Md = Md;
 param.dStart = [0;0];
 
+%Tolerance
 param.eps_r = eps_r;
 param.eps_t = eps_t;
+param.toleranceInput = 0.00002;
+param.closeToTarget = 0.005;
 param.angCond = 0;
 
 
@@ -239,15 +242,18 @@ if(x1 ~= x2 && x1~=x4)
     D(4,5) = -len*m21;
     D(4,7) = len;
   
-    D2 = D;
-    
+
     
     
 
 end
+D(5,5) = 1;
+D(6,7) = 1;
 
+param.D = D;
+D2 = D;
 
-angleDegreeConst = 5;
+angleDegreeConst = deg2rad(1);
 angleConstraint = [-angleDegreeConst , angleDegreeConst];
 
 
@@ -270,26 +276,30 @@ param.D2 = D2;
 %+++++++++++++++++++++++++++++++++++++++++++matrix 1
 % Declare penalty matrices and tune them here:
 Q=C'*C;
-Q(1,1) = 3;
-Q(3,3) = 3;
+Q(1,1) = 1;
+Q(2,2) = 1;
+Q(3,3) = 1;
+Q(2,2) = 1;
 
-
-weightInput = 0.02;
+weightInput = 0.01;
 R=eye(2)*weightInput; 
 P=Q; % terminal weight
 
 
-% Compute stage constraint matrices and vector
+% First rect
 [Dt,Et,bt]=genStageConstraints(A,B,D,cl1,ch1,ul,uh);
 [DD,EE,bb]=genTrajectoryConstraints(Dt,Et,bt,N);
 [Gamma,Phi] = genPrediction(A,B,N);
-[F,J,L_place]=genConstraintMatrices(DD,EE,Gamma,Phi,N);
+[F,J,L]=genConstraintMatrices(DD,EE,Gamma,Phi,N);
 [H,G] = genCostMatrices(Gamma,Phi,Q,R,P,N);       
 H = chol(H,'lower');
 H=(H'\eye(size(H)))';
 
+param.Gamma = Gamma;
+param.Phi = Phi;
 
-% %second rect
+
+% second rect
 [Dt2,Et2,bt2]=genStageConstraints(A,B,D2,cl2,ch2,ul,uh);
 [DD2,EE2,bb2]=genTrajectoryConstraints(Dt2,Et2,bt2,N);
 [F2,J2,L2]=genConstraintMatrices(DD2,EE2,Gamma,Phi,N);
@@ -300,7 +310,7 @@ param.H = H;
 param.G = G;
 param.F = F;
 param.J = J;
-param.L = L_place;
+param.L = L;
 param.Gamma = Gamma;
 param.Phi = Phi;
 param.EE = EE;
