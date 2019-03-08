@@ -82,6 +82,8 @@ end
 
     formatSpec = 'Estimator xHat =%f | yHat =%f | dtx =%f | dty =%f \n';
     fprintf(formatSpec,x_hat(1),x_hat(3),x_hat(9),x_hat(10));
+    
+
 
 end % End of myStateEstimator
 

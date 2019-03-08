@@ -16,6 +16,8 @@ param.C = C;
 %4 state estimator + disturbance estimator + target calculator
 selectController = 4;
 param.selectController = selectController;
+%LQR BackupController
+param.backupController = 0;
 
 %Measure matrices
 Mx = zeros(2,8);
@@ -123,13 +125,11 @@ L_place = place(Atilde',Ctilde',eigDes)';
 
 if(selectController == 1)
     param.LTR_obsv = L_LTR_tilde;%It is not used
-    
 end
 if(selectController ==2)
     
     param.LTR_obsv = L1;
 end
-
 if(selectController == 3 || selectController == 4)
     param.LTR_obsv = L_LTR_tilde;
 end
@@ -153,8 +153,9 @@ uh=[inputConst;inputConst];
 
 param.ul = ul;
 param.uh = uh;
-%state constraints
 
+
+%state constraints
 x1 = c(1,1);
 y1 = c(1,2);
 
@@ -178,30 +179,28 @@ m23 = (y2 - y3)/(x2 - x3);
 
 %-----------------using middle point
 
-% param.xTarSigned = (x5 + 1.1*x2)*0.5;
-% param.yTarSigned = (y5 + 1.1*y2)*0.5;
+param.xTarSigned = (x5 + x2)*0.5;
+param.yTarSigned = (y5 + y2)*0.5;
 
 %-----------------using intersection 
-if(x2 == x5)
-    pointTarSigned = [x2 ; x2*m23-m23*xTar+yTar];
-    disp('vertical');
-    
-else
-    m25 = (y2-y5)/(x2-x5);
-    ATarSigned = [[-m25 1];[-m23 1]];
-    bTarSigned = [-m25*x5 + y5 ; -m23*xTar + yTar];
-
-    pointTarSigned = ATarSigned\bTarSigned;
-
-end
-
-
-
-param.xTarSigned = pointTarSigned(1);
-param.yTarSigned = pointTarSigned(2);
-param.epsilonTarget = 0.007;
+% if(x2 == x5)
+%     pointTarSigned = [x2 ; x2*m23-m23*xTar+yTar];
+%     disp('vertical');
+%     
+% else
+%     m25 = (y2-y5)/(x2-x5);
+%     ATarSigned = [[-m25 1];[-m23 1]];
+%     bTarSigned = [-m25*x5 + y5 ; -m23*xTar + yTar];
+% 
+%     pointTarSigned = ATarSigned\bTarSigned;
+% 
+% end
+% param.xTarSigned = pointTarSigned(1);
+% param.yTarSigned = pointTarSigned(2);
 
 
+param.epsilonTarget = 0.007;%Change target
+shrinkFactor = 0.00;%shrink factor of the constraints
 
 if(x1 ~= x2 && x1~=x4)
 
@@ -209,18 +208,18 @@ if(x1 ~= x2 && x1~=x4)
     m21 = (y2-y1)/(x2-x1);
     
     %first rect
-    c1Lower = -x1*m16+y1;
-    c1Upper = -x2*m16+y2;
+    c1Lower = (-x1*m16+y1)*(1 + shrinkFactor);
+    c1Upper = (-x2*m16+y2)*(1 - shrinkFactor);
 
-    c2Lower = -x3*m21+y3;
-    c2Upper = -x1*m21+y1;
+    c2Lower = (-x3*m21+y3)*(1 + shrinkFactor);
+    c2Upper = (-x1*m21+y1)*(1 - shrinkFactor);
     
     %second rect
-    c1Lower2 = -x4*m16+y4;
-    c1Upper2 = -x3*m16+y3;
+    c1Lower2 = (-x4*m16+y4)*(1 + shrinkFactor);
+    c1Upper2 = (-x3*m16+y3)*(1 - shrinkFactor);
     
-    c2Lower2 = -x4*m21+y4;
-    c2Upper2 = -x2*m21+y2;
+    c2Lower2 = (-x4*m21+y4)*(1 + shrinkFactor);
+    c2Upper2 = (-x2*m21+y2)*(1 - shrinkFactor);
 
 
 
@@ -323,6 +322,16 @@ param.J2 = J2;
 param.L2 = L2;
 param.bb2 = bb2;
 param.EE2 = EE2;
+
+
+
+
+%BACKUP : Controller LQR close to the solution
+R_backup = 0.02*eye(2);
+Q_backup = C' * C;
+
+param.K_LQR = dlqr(A,B,Q_backup,R_backup);
+
 
 
 

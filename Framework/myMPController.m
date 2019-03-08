@@ -65,9 +65,7 @@ if(checkChangeRect == 0)
         xStart = param.xStart;
     end
 else
-    %Second rect constr
-    
-    
+        %Second rect constr
         [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
         [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
         [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
@@ -91,20 +89,42 @@ iA = false(size(newbb));
 [U,~,~]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
 
 u =U(1:param.m,:);
+
+
+
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%saturation of the input
-if(abs(u(1)) < param.toleranceInput)
-   u(1) = 0; 
-end
-if(abs(u(2)) < param.toleranceInput)
-   u(2) = 0; 
-end
+                    %EXTRA
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                %saturation of the input
+% if(abs(u(1)) < param.toleranceInput)
+%    u(1) = 0; 
+% end
+% if(abs(u(2)) < param.toleranceInput)
+%    u(2) = 0; 
+% end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                %Stop do everything close to the Tar
+% dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
+% if(dist < param.closeToTarget || checkCloseTar == 1)
+%    u = zeros(2,1);%stop do everything 
+%    checkCloseTar = 1;
+% end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                %Switch to LQR if close to the solution
 dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
 if(dist < param.closeToTarget || checkCloseTar == 1)
-   u = zeros(2,1);%stop do everything 
-   checkCloseTar = 1;
+    u = -param.K_LQR * (currentX - param.xTarget); 
+    checkCloseTar = 1;
 end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        %BACKUP : Just use LQR 
+if( param.backupController == 1)      
+    u = -param.K_LQR * (currentX - param.xTarget); 
+end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
 
 formatSpec = 'MPC Controller ux=%f | uy=%f\n';
 fprintf(formatSpec,u(1),u(2));
