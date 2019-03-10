@@ -4,13 +4,14 @@ clc;
 
 
 
-%% Load the parameters for the Simscape
+%% Load the parameters for the Simscapea(1,2)
 load('Params_Simscape.mat');
 load('SSmodelParams.mat');
 
 
 %% Create the shape to test on
 testShape = generateShape();
+disp(testShape.c)
 
 
 %% Extract the student functions

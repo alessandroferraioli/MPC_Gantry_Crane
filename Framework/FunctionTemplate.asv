@@ -14,7 +14,7 @@ param.C = C;
 %2 state estimator
 %3 state estimator + disturbance estimator
 %4 state estimator + disturbance estimator + target calculator
-selectController = 4;
+selectController = 1;
 param.selectController = selectController;
 %LQR BackupController
 param.backupController = 0;
@@ -174,8 +174,253 @@ y5 = c(5,2);
 x6 = c(6,1);
 y6 = c(6,2);
 
+caseConst = -1;
 
-m23 = (y2 - y3)/(x2 - x3);
+%1-2
+if(abs(x2-x5) < 10^(-10))
+    if(y2>y5)
+        caseConst = 1;
+        disp('UP');
+    else
+        caseConst = 2;
+        disp('DOWN');
+    end
+    
+end
+
+
+%3-4
+if(abs(y2-y5) < 10^(-10))
+    if(x2>x5)
+        caseConst = 3;
+        disp('RIGHT');
+    else
+        caseConst = 4;
+        disp('LEFT');
+    end
+    
+end
+
+%5-6
+if(abs(y1-y2) < 10^(-10))
+    if(x2>x1)
+        caseConst = 5;
+        disp('UP RIGHT');
+    else
+        caseConst = 6;
+        disp('BOTTOM LEFT');
+    end
+    
+end
+%7-8
+if(abs(x1-x2) < 10^(-10))
+    if(y1>y2)
+        caseConst = 7;
+        disp('BOTTOM RIGHT');
+    else
+        caseConst = 8;
+        disp('UP LEFT');
+    end
+    
+end
+
+
+param.epsilonTarget = 0.007;%Change target
+shrinkFactor = 0.0;%shrink factor of the constraints
+
+if(caseConst == 1)
+    
+  m1 = (y2-y1)/(x2-x1);
+  m2 = (y1-y6)/(x1-x6);
+  
+  %first rectangle
+  c1Lower = (-x1*m2+y1)*(1 + shrinkFactor);
+  c1Upper = (-x2*m2+y2)*(1 - shrinkFactor);
+  
+  c2Lower = (-x6*m1+y6)*(1 + shrinkFactor);
+  c2Upper = (-x1*m1+y1)*(1 - shrinkFactor);
+  
+  %second rectangle
+  c1Lower2 = (-x4*m2+y4)*(1 + shrinkFactor);
+  c1Upper2 = (-x3*m2+y3)*(1 - shrinkFactor);
+  
+  c2Lower2 = (-x4*m1+y4)*(1 + shrinkFactor);
+  c2Upper2 = (-x2*m1+y2)*(1 - shrinkFactor);
+
+    
+    
+end
+
+
+if(caseConst == 2)
+    
+  m1 = (y1-y2)/(x2-x1);
+  m2 = (y6-y1)/(x6-x1);
+  
+  %first rectangle
+  c1Lower = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper = (-x4*m2+y4)*(1 - shrinkFactor);
+  
+  c2Lower = (-x2*m1+y2)*(1 + shrinkFactor);
+  c2Upper = (-x4*m1+y4)*(1 - shrinkFactor);
+  
+  %second rectangle
+  c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper2 = (-x6*m2+y6)*(1 - shrinkFactor);
+  
+  c2Lower2 = (-x2*m1+y2)*(1 + shrinkFactor);
+  c2Upper2 = (-x5*m1+y5)*(1 - shrinkFactor);
+    
+end
+
+
+if(caseConst == 3)
+    
+  m1 = (y1-y6)/(x1-x6);
+  m2 = (y2-y1)/(x2-x1);
+  
+  %first rectangle
+  c1Lower = (-x5*m2+y5)*(1 + shrinkFactor);
+  c1Upper = (-x2*m2+y2)*(1 - shrinkFactor);
+  
+  c2Lower = (-x3*m1+y3)*(1 + shrinkFactor);
+  c2Upper = (-x1*m1+y1)*(1 - shrinkFactor);
+  
+  %second rectangle
+  c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper2 = (-x2*m2+y2)*(1 - shrinkFactor);
+  
+  c2Lower2 = (-x3*m1+y3)*(1 + shrinkFactor);
+  c2Upper2 = (-x5*m1+y5)*(1 - shrinkFactor);
+    
+end
+
+if(caseConst == 4)
+    
+  m1 = (y1-y6)/(x1-x6);
+  m2 = (y2-y1)/(x2-x1);
+  
+  %first rectangle
+  c1Lower = (-x2*m2+y2)*(1 + shrinkFactor);
+  c1Upper = (-x5*m2+y5)*(1 - shrinkFactor);
+  
+  c2Lower = (-x6*m1+y6)*(1 + shrinkFactor);
+  c2Upper = (-x2*m1+y2)*(1 - shrinkFactor);
+  
+  %second rectangle
+  c1Lower2 = (-x2*m2+y2)*(1 + shrinkFactor);
+  c1Upper2 = (-x4*m2+y4)*(1 - shrinkFactor);
+  
+  c2Lower2 = (-x5*m1+y5)*(1 + shrinkFactor);
+  c2Upper2 = (-x3*m1+y3)*(1 - shrinkFactor);
+    
+end
+
+if(caseConst == 5)
+    
+    %first rectangle
+    c1Lower = x1;
+    c1Upper = x2;
+    
+    c2Lower = y5;
+    c2Upper = y1;
+    
+    %second rectangle
+    c1Lower2 = x5;
+    c1Upper2 = x2;
+    
+    c2Lower2 = y3;
+    c2Upper2 = y2;
+    
+    D = zeros(6,8);
+    D(1,1) = 1;
+    D(2,3) = 1;
+    D(3,1) = 1;
+    D(3,5) = r;
+    D(4,3) = 1;
+    D(4,7) = r;
+    
+    D2 = D;
+    
+end
+
+
+if(caseConst == 6)
+    
+ %first rectangle
+    c1Lower = x2;
+    c1Upper = x1;
+    
+    c2Lower = y1;
+    c2Upper = y6;
+    
+    %second rectangle
+    c1Lower2 = x5;
+    c1Upper2 = x2;
+    
+    c2Lower2 = y3;
+    c2Upper2 = y2;
+    
+    D = zeros(6,8);
+    D(1,1) = 1;
+    D(2,3) = 1;
+    D(3,1) = 1;
+    D(3,5) = r;
+    D(4,3) = 1;
+    D(4,7) = r;
+    
+    D2 = D;
+    
+end
+
+
+if(caseConst == 7)
+    
+  m1 = (y4-y3)/(x4-x3);
+  m2 = (y3-y2)/(x3-x2);
+  
+  %first rectangle
+  c1Lower = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper = (-x4*m2+y4)*(1 - shrinkFactor);
+  
+  c2Lower = (-x4*m1+y4)*(1 + shrinkFactor);
+  c2Upper = (-x2*m1+y2)*(1 - shrinkFactor);
+  
+  %second rectangle
+  c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper2 = (-x6*m2+y6)*(1 - shrinkFactor);
+  
+  c2Lower2 = (-x2*m1+y2)*(1 + shrinkFactor);
+  c2Upper2 = (-x5*m1+y5)*(1 - shrinkFactor);
+    
+end
+
+
+if(caseConst == 8)
+    
+  m1 = (y4-y3)/(x4-x3);
+  m2 = (y3-y2)/(x3-x2);
+  
+  %first rectangle
+  c1Lower = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper = (-x4*m2+y4)*(1 - shrinkFactor);
+  
+  c2Lower = (-x4*m1+y4)*(1 + shrinkFactor);
+  c2Upper = (-x2*m1+y2)*(1 - shrinkFactor);
+  
+  %second rectangle
+  c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
+  c1Upper2 = (-x6*m2+y6)*(1 - shrinkFactor);
+  
+  c2Lower2 = (-x2*m1+y2)*(1 + shrinkFactor);
+  c2Upper2 = (-x5*m1+y5)*(1 - shrinkFactor);
+    
+end
+
+
+
+
+
 
 %-----------------using middle point
 
@@ -183,6 +428,9 @@ param.xTarSigned = (x5 + x2)*0.5;
 param.yTarSigned = (y5 + y2)*0.5;
 
 %-----------------using intersection 
+
+%m23 = (y2 - y3)/(x2 - x3);
+
 % if(x2 == x5)
 %     pointTarSigned = [x2 ; x2*m23-m23*xTar+yTar];
 %     disp('vertical');
@@ -200,59 +448,41 @@ param.yTarSigned = (y5 + y2)*0.5;
 
 
 param.epsilonTarget = 0.007;%Change target
-shrinkFactor = 0.;
+shrinkFactor = 0.0;%shrink factor of the constraints
 
-if(x1 ~= x2 && x1~=x4)
-
-    m16 = (y1-y6)/(x1-x6);
-    m21 = (y2-y1)/(x2-x1);
-    
-    %first rect
-    c1Lower = (-x1*m16+y1)*(1 + shrinkFactor);
-    c1Upper = (-x2*m16+y2)*(1 - shrinkFactor);
-
-    c2Lower = (-x3*m21+y3)*(1 + shrinkFactor);
-    c2Upper = (-x1*m21+y1)*(1 - shrinkFactor);
-    
-    %second rect
-    c1Lower2 = (-x4*m16+y4)*(1 + shrinkFactor);
-    c1Upper2 = (-x3*m16+y3)*(1 - shrinkFactor);
-    
-    c2Lower2 = (-x4*m21+y4)*(1 + shrinkFactor);
-    c2Upper2 = (-x2*m21+y2)*(1 - shrinkFactor);
-
-
+if(caseConst == 1 || caseConst  == 2|| caseConst  == 3|| caseConst  == 4)
 
     D = zeros(6,8);
     
-    D(1,1) = -m16;
+    D(1,1) = -m2;
     D(1,3) = 1;
-
-    D(2,1) = -m21;
+    
+    D(2,1) = -m1;
     D(2,3) = 1;
     
-    D(3,1) = -m16;
+    D(3,1) = -m2;
     D(3,3) = 1;
-    D(3,5) = -len*m16;
+    D(3,5) = -len*m2;
     D(3,7) = len;
     
-    D(4,1) = -m21;
+    D(4,1) = -m1;
     D(4,3) = 1;
-    D(4,5) = -len*m21;
+    D(4,5) = -len*m1;
     D(4,7) = len;
-  
-
     
     
+    
+    
+    D(5,5) = 1;
+    D(6,7) = 1;
+    
+    D2 = D;
 
 end
-D(5,5) = 1;
-D(6,7) = 1;
 
 param.D = D;
-D2 = D;
 
-angleDegreeConst = deg2rad(1);
+angleDegreeConst = deg2rad(2);
 angleConstraint = [-angleDegreeConst , angleDegreeConst];
 
 
@@ -646,11 +876,15 @@ u =U(1:param.m,:);
 % end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                 %Switch to LQR if close to the solution
+                
+                
 dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
-if(dist < param.closeToTarget || checkCloseTar == 1)
-    u = -param.K_LQR * (currentX - param.xTarget); 
-    checkCloseTar = 1;
-end
+
+% 
+% if(dist < param.closeToTarget || checkCloseTar == 1)
+%     u = -param.K_LQR * (currentX - param.xTarget); 
+%     checkCloseTar = 1;
+% end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %BACKUP : Just use LQR 
 if( param.backupController == 1)      
