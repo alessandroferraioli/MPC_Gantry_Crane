@@ -26,10 +26,12 @@ if(isempty(checkChangeRect))
    checkChangeRect = 0; 
 end
 
-dist = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
+dist_middle = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
+dist_final = sqrt((x_hat(1)-param.xTar)^2 + (x_hat(3)-param.yTar)^2);
+
 xStart = zeros(8,1);
 if(checkChangeRect == 0)
-    if(dist < param.epsilonTarget)
+    if(dist_middle < param.epsilonTarget)
         %Second rect constr
       
         %Recalculate the constraits
@@ -90,12 +92,18 @@ iA = false(size(newbb));
 
 u =U(1:param.m,:);
 
+if(param.selectController == 6)
+
+  u = -param.K_LQR * (currentX - xCurrentTarget); 
+    
+end
+
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                     %EXTRA
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                %saturation of the input
+%saturation of the input
 % if(abs(u(1)) < param.toleranceInput)
 %    u(1) = 0; 
 % end
@@ -103,27 +111,23 @@ u =U(1:param.m,:);
 %    u(2) = 0; 
 % end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                %Stop do everything close to the Tar
-% dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
-% if(dist < param.closeToTarget || checkCloseTar == 1)
-%    u = zeros(2,1);%stop do everything 
-%    checkCloseTar = 1;
-% end
+ %Stop do everything close to the Tar
+if(dist_final < param.closeToTarget || checkCloseTar == 1)
+   u = zeros(2,1);%stop do everything 
+   checkCloseTar = 1;
+end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                %Switch to LQR if close to the solution
-                
-                
-dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
-
-% 
-%if(dist < param.closeToTarget || checkCloseTar == 1)
-%     u = -param.K_LQR * (currentX - param.xTarget); 
-%     checkCloseTar = 1;
-% end
+%Switch to LQR if close to the solution
+             
+if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+    disp('USING LQR CLOSE TO THE SOLUTION FINAL');
+    u = -param.K_LQR * (currentX - param.xTarget); 
+    checkCloseTar = 1;
+end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %BACKUP : Just use LQR 
-if( param.backupController == 1)      
-    u = -param.K_LQR * (currentX - param.xTarget); 
+if( param.backupController == 1)    
+    u = -param.K_LQR * (currentX - xCurrentTarget); 
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

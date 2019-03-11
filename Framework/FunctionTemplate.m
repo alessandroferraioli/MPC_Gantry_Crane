@@ -5,7 +5,7 @@ load CraneParameters;
 Ts = 1/20;
 
 param.Ts = Ts;
-[A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm,Ts);
+[A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm*0.4,Ts);
 
 param.A = A;
 param.B = B;
@@ -15,7 +15,9 @@ param.C = C;
 %2 state estimator
 %3 state estimator + disturbance estimator
 %4 state estimator + disturbance estimator + target calculator
-selectController = 3;
+%5 state estimator + target calculator
+%6 LQR with just change of target
+selectController = 1;
 param.selectController = selectController;
 %LQR BackupController
 param.backupController = 0;
@@ -31,11 +33,13 @@ Md = eye(2);
 param.Md = Md;
 param.dStart = [0;0];
 
-%Tolerance
+%TOLERANCES
 param.eps_r = eps_r;
 param.eps_t = eps_t;
 param.toleranceInput = 0.00002;
-param.closeToTarget = 0.005;
+param.epsilonTarget = 0.02;%Change target
+
+param.closeToTarget = 0.01;
 param.angCond = 0;
 
 
@@ -122,10 +126,10 @@ L_LTR_tilde = dlqr(Atilde',Ctilde', eye(10) , weight)';
 L_LTR= [L1 ; L2];
 L_place = place(Atilde',Ctilde',eigDes)';
 
-if(selectController == 1)
+if(selectController == 1 || selectController == 6)
     param.LTR_obsv = L_LTR_tilde;%It is not used
 end
-if(selectController ==2)
+if(selectController ==2 || selectController ==5 )
     
     param.LTR_obsv = L1;
 end
@@ -224,7 +228,6 @@ if(abs(x1-x2) < 10^(-10))
 end
 
 
-param.epsilonTarget = 0.007;%Change target
 shrinkFactor = 0.0;%shrink factor of the constraints
 
 if(caseConst == 1)
@@ -318,18 +321,18 @@ end
 if(caseConst == 5)
    
  %first rectangle
-    c1Lower = x6;
-    c1Upper = x3;
+    c1Lower = x6*(1 + shrinkFactor);
+    c1Upper = x3*(1 - shrinkFactor);
     
-    c2Lower = y5;
-    c2Upper = y2;
+    c2Lower = y5*(1 + shrinkFactor);
+    c2Upper = y2*(1 - shrinkFactor);
     
     %second rectangle
-    c1Lower2 = x4;
-    c1Upper2 = x3;
+    c1Lower2 = x4*(1 + shrinkFactor);
+    c1Upper2 = x3*(1 - shrinkFactor);
     
-    c2Lower2 = y3;
-    c2Upper2 = y2;
+    c2Lower2 = y3*(1 + shrinkFactor);
+    c2Upper2 = y2*(1 - shrinkFactor);
     
     D = zeros(6,8);
     D(1,1) = 1;
@@ -346,18 +349,18 @@ end
 if(caseConst == 6)
     
  %first rectangle
-    c1Lower = x2;
-    c1Upper = x1;
+    c1Lower = x2*(1 + shrinkFactor);
+    c1Upper = x1*(1 - shrinkFactor);
     
-    c2Lower = y1;
-    c2Upper = y6;
+    c2Lower = y1*(1 + shrinkFactor);
+    c2Upper = y6*(1 - shrinkFactor);
     
     %second rectangle
-    c1Lower2 = x2;
-    c1Upper2 = x5;
+    c1Lower2 = x2*(1 + shrinkFactor);
+    c1Upper2 = x5*(1 - shrinkFactor);
     
-    c2Lower2 = y2;
-    c2Upper2 = y3;
+    c2Lower2 = y2*(1 + shrinkFactor);
+    c2Upper2 = y3*(1 - shrinkFactor);
     
     D = zeros(6,8);
     D(1,1) = 1;
@@ -374,18 +377,18 @@ end
 if(caseConst == 7)
     
     %first rectangle
-    c1Lower = x6;
-    c1Upper = x3;
+    c1Lower = x6*(1 + shrinkFactor);
+    c1Upper = x1*(1 - shrinkFactor);
     
-    c2Lower = y2;
-    c2Upper = y6;
+    c2Lower = y2*(1 + shrinkFactor);
+    c2Upper = y6*(1 - shrinkFactor);
     
     %second rectangle
-    c1Lower2 = x4;
-    c1Upper2 = x3;
+    c1Lower2 = x3*(1 + shrinkFactor);
+    c1Upper2 = x2*(1 - shrinkFactor);
     
-    c2Lower2 = y3;
-    c2Upper2 = y4;
+    c2Lower2 = y3*(1 + shrinkFactor);
+    c2Upper2 = y4*(1 - shrinkFactor);
     
     D = zeros(6,8);
     D(1,1) = 1;
@@ -403,18 +406,18 @@ end
 if(caseConst == 8)
     
     %first rectangle
-    c1Lower = x1;
-    c1Upper = x6;
+    c1Lower = x1*(1 + shrinkFactor);
+    c1Upper = x6*(1 - shrinkFactor);
     
-    c2Lower = y1;
-    c2Upper = y2;
+    c2Lower = y1*(1 + shrinkFactor);
+    c2Upper = y2*(1 - shrinkFactor);
     
     %second rectangle
-    c1Lower2 = x1;
-    c1Upper2 = x3;
+    c1Lower2 = x2*(1 + shrinkFactor);
+    c1Upper2 = x3*(1 - shrinkFactor);
     
-    c2Lower2 = y4;
-    c2Upper2 = y3;
+    c2Lower2 = y4*(1 + shrinkFactor);
+    c2Upper2 = y3*(1 - shrinkFactor);
     
     D = zeros(6,8);
     D(1,1) = 1;
@@ -423,6 +426,9 @@ if(caseConst == 8)
     D(3,5) = r;
     D(4,3) = 1;
     D(4,7) = r;
+    
+
+
     
     
 end
@@ -486,7 +492,7 @@ D(5,5) = 1;
 D(6,7) = 1;
 D2 = D;
 
-angleDegreeConst = deg2rad(2);
+angleDegreeConst = deg2rad(1);
 angleConstraint = [-angleDegreeConst , angleDegreeConst];
 
 
@@ -594,16 +600,17 @@ eps_t = (param.eps_t)/sqrt(2);
 persistent changed
 
  dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
+dist_final = sqrt((xHat(1)-param.xTar)^2 + (xHat(3)-param.yTar)^2);
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %JUST CHANGE THE TARGET FROM THE MIDDLE TO THE END
-if(param.selectController == 1 || param.selectController == 2 || param.selectController == 3)
+if(param.selectController == 1 || param.selectController == 2 || param.selectController == 3 || param.selectController == 6)
     %nothing
     if(isempty(changed))
         changed = 0;
     end
     
-    fprintf('Distance :%f \n', dist);
+    fprintf('Distance Middle :%f | Distance Final :%f\n', dist,dist_final);
     if(changed == 0)
         if(dist < param.epsilonTarget)
             r(1) = param.xTar;
@@ -614,7 +621,6 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
             r(3) = param.yTarSigned;
         end
     else
-        disp('FINAL');
         r(1) = param.xTar;
         r(3) = param.yTar;
         
@@ -624,7 +630,7 @@ end
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %ESTIMATION WITH QUAD PROG
-if(param.selectController == 4)
+if(param.selectController == 4 || param.selectController==5)
     if(isempty(changed))
         changed = 0;
     end
@@ -696,14 +702,15 @@ gainObsv =  param.LTR_obsv;
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-if(param.selectController == 1)
+if(param.selectController == 1 || param.selectController == 6)
+    %no estimator
     x_hat(1:8) = y;
     x_hat(9:10) = zeros(2,1);
     
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-if(param.selectController == 2)
+if(param.selectController == 2 || param.selectController == 5)
     if(isempty(check))
         %first run , we use the xHatPrev
         lhs = y-param.C*param.xStart;
@@ -801,10 +808,12 @@ if(isempty(checkChangeRect))
    checkChangeRect = 0; 
 end
 
-dist = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
+dist_middle = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
+dist_final = sqrt((x_hat(1)-param.xTar)^2 + (x_hat(3)-param.yTar)^2);
+
 xStart = zeros(8,1);
 if(checkChangeRect == 0)
-    if(dist < param.epsilonTarget)
+    if(dist_middle < param.epsilonTarget)
         %Second rect constr
       
         %Recalculate the constraits
@@ -865,12 +874,18 @@ iA = false(size(newbb));
 
 u =U(1:param.m,:);
 
+if(param.selectController == 6)
+
+  u = -param.K_LQR * (currentX - xCurrentTarget); 
+    
+end
+
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                     %EXTRA
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                %saturation of the input
+%saturation of the input
 % if(abs(u(1)) < param.toleranceInput)
 %    u(1) = 0; 
 % end
@@ -878,27 +893,23 @@ u =U(1:param.m,:);
 %    u(2) = 0; 
 % end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                %Stop do everything close to the Tar
-% dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
-% if(dist < param.closeToTarget || checkCloseTar == 1)
-%    u = zeros(2,1);%stop do everything 
-%    checkCloseTar = 1;
-% end
+ %Stop do everything close to the Tar
+if(dist_final < param.closeToTarget || checkCloseTar == 1)
+   u = zeros(2,1);%stop do everything 
+   checkCloseTar = 1;
+end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                %Switch to LQR if close to the solution
-                
-                
-dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
-
-% 
-%if(dist < param.closeToTarget || checkCloseTar == 1)
-%     u = -param.K_LQR * (currentX - param.xTarget); 
-%     checkCloseTar = 1;
-% end
+%Switch to LQR if close to the solution
+             
+if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+    disp('USING LQR CLOSE TO THE SOLUTION FINAL');
+    u = -param.K_LQR * (currentX - param.xTarget); 
+    checkCloseTar = 1;
+end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %BACKUP : Just use LQR 
-if( param.backupController == 1)      
-    u = -param.K_LQR * (currentX - param.xTarget); 
+if( param.backupController == 1)    
+    u = -param.K_LQR * (currentX - xCurrentTarget); 
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

@@ -14,16 +14,17 @@ eps_t = (param.eps_t)/sqrt(2);
 persistent changed
 
  dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
+dist_final = sqrt((xHat(1)-param.xTar)^2 + (xHat(3)-param.yTar)^2);
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %JUST CHANGE THE TARGET FROM THE MIDDLE TO THE END
-if(param.selectController == 1 || param.selectController == 2 || param.selectController == 3)
+if(param.selectController == 1 || param.selectController == 2 || param.selectController == 3 || param.selectController == 6)
     %nothing
     if(isempty(changed))
         changed = 0;
     end
     
-    fprintf('Distance :%f \n', dist);
+    fprintf('Distance Middle :%f | Distance Final :%f\n', dist,dist_final);
     if(changed == 0)
         if(dist < param.epsilonTarget)
             r(1) = param.xTar;
@@ -34,7 +35,6 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
             r(3) = param.yTarSigned;
         end
     else
-        disp('FINAL');
         r(1) = param.xTar;
         r(3) = param.yTar;
         
@@ -44,7 +44,7 @@ end
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %ESTIMATION WITH QUAD PROG
-if(param.selectController == 4)
+if(param.selectController == 4 || param.selectController==5)
     if(isempty(changed))
         changed = 0;
     end

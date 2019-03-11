@@ -14,14 +14,15 @@ gainObsv =  param.LTR_obsv;
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-if(param.selectController == 1)
+if(param.selectController == 1 || param.selectController == 6)
+    %no estimator
     x_hat(1:8) = y;
     x_hat(9:10) = zeros(2,1);
     
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-if(param.selectController == 2)
+if(param.selectController == 2 || param.selectController == 5)
     if(isempty(check))
         %first run , we use the xHatPrev
         lhs = y-param.C*param.xStart;
