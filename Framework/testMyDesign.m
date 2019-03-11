@@ -1,4 +1,5 @@
 clear variables
+clc
 close all
 
 

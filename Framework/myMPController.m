@@ -116,7 +116,7 @@ u =U(1:param.m,:);
 dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
 
 % 
-% if(dist < param.closeToTarget || checkCloseTar == 1)
+%if(dist < param.closeToTarget || checkCloseTar == 1)
 %     u = -param.K_LQR * (currentX - param.xTarget); 
 %     checkCloseTar = 1;
 % end

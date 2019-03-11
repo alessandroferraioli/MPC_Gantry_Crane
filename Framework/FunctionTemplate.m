@@ -1,3 +1,4 @@
+
 function [ param ] = mySetup(c, startingPoint, targetPoint, eps_r, eps_t)
 %generate matrix of dynamics
 load CraneParameters;
@@ -14,7 +15,7 @@ param.C = C;
 %2 state estimator
 %3 state estimator + disturbance estimator
 %4 state estimator + disturbance estimator + target calculator
-selectController = 1;
+selectController = 3;
 param.selectController = selectController;
 %LQR BackupController
 param.backupController = 0;
@@ -63,9 +64,7 @@ xStart (1,1) = startingPoint(1);
 xStart (3,1) = startingPoint(2);
 param.xStart = xStart;
 
-%half Point
-changePoint = 4;
-param.HalfPoint = [(xTarget(1,1) - xStart(1,1))/changePoint , (xTarget(3,1) - xStart(3,1))/changePoint];
+
 
 %Disturbance
 Cd = zeros(8,2);
@@ -317,17 +316,17 @@ if(caseConst == 4)
 end
 
 if(caseConst == 5)
-    
-    %first rectangle
-    c1Lower = x1;
-    c1Upper = x2;
+   
+ %first rectangle
+    c1Lower = x6;
+    c1Upper = x3;
     
     c2Lower = y5;
-    c2Upper = y1;
+    c2Upper = y2;
     
     %second rectangle
-    c1Lower2 = x5;
-    c1Upper2 = x2;
+    c1Lower2 = x4;
+    c1Upper2 = x3;
     
     c2Lower2 = y3;
     c2Upper2 = y2;
@@ -340,7 +339,6 @@ if(caseConst == 5)
     D(4,3) = 1;
     D(4,7) = r;
     
-    D2 = D;
     
 end
 
@@ -369,7 +367,6 @@ if(caseConst == 6)
     D(4,3) = 1;
     D(4,7) = r;
     
-    D2 = D;
     
 end
 
@@ -378,16 +375,16 @@ if(caseConst == 7)
     
     %first rectangle
     c1Lower = x6;
-    c1Upper = x1;
+    c1Upper = x3;
     
     c2Lower = y2;
     c2Upper = y6;
     
     %second rectangle
-    c1Lower2 = x3;
-    c1Upper2 = x2;
+    c1Lower2 = x4;
+    c1Upper2 = x3;
     
-    c2Lower2 = y2;
+    c2Lower2 = y3;
     c2Upper2 = y4;
     
     D = zeros(6,8);
@@ -398,7 +395,6 @@ if(caseConst == 7)
     D(4,3) = 1;
     D(4,7) = r;
     
-    D2 = D;
   
     
 end
@@ -428,7 +424,6 @@ if(caseConst == 8)
     D(4,3) = 1;
     D(4,7) = r;
     
-    D2 = D;
     
 end
 
@@ -462,9 +457,6 @@ param.yTarSigned = (y5 + y2)*0.5;
 % param.yTarSigned = pointTarSigned(2);
 
 
-param.epsilonTarget = 0.007;%Change target
-shrinkFactor = 0.0;%shrink factor of the constraints
-
 if(caseConst == 1 || caseConst  == 2|| caseConst  == 3|| caseConst  == 4)
 
     D = zeros(6,8);
@@ -484,18 +476,15 @@ if(caseConst == 1 || caseConst  == 2|| caseConst  == 3|| caseConst  == 4)
     D(4,3) = 1;
     D(4,5) = -len*m1;
     D(4,7) = len;
-    
-    
-    
-    
-    D(5,5) = 1;
-    D(6,7) = 1;
-    
-    D2 = D;
+
 
 end
 
-param.D = D;
+    
+    
+D(5,5) = 1;
+D(6,7) = 1;
+D2 = D;
 
 angleDegreeConst = deg2rad(2);
 angleConstraint = [-angleDegreeConst , angleDegreeConst];
@@ -505,9 +494,11 @@ cl1 = [c1Lower;c2Lower;c1Lower;c2Lower;angleConstraint(1);angleConstraint(1)];
 ch1 = [c1Upper;c2Upper;c1Upper;c2Upper;angleConstraint(2);angleConstraint(2)];
 param.cl1 = cl1;
 param.ch1 = ch1;
-param.D1 = D;
+param.D = D;
 
-
+%1-2 chart
+%3-4 mass
+%5-6 angle
 cl2 = [c1Lower2;c2Lower2;c1Lower2;c2Lower2;angleConstraint(1);angleConstraint(1)];
 ch2 = [c1Upper2;c2Upper2;c1Upper2;c2Upper2;angleConstraint(2);angleConstraint(2)];
 param.cl2 = cl2;
@@ -599,18 +590,19 @@ f = zeros(10,1);
 r = zeros(10,1);
 
 
-eps_t = 2*param.eps_t/sqrt(2);
+eps_t = (param.eps_t)/sqrt(2);
 persistent changed
 
+ dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
+
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%Just change the target
+%JUST CHANGE THE TARGET FROM THE MIDDLE TO THE END
 if(param.selectController == 1 || param.selectController == 2 || param.selectController == 3)
     %nothing
     if(isempty(changed))
         changed = 0;
     end
     
-    dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
     fprintf('Distance :%f \n', dist);
     if(changed == 0)
         if(dist < param.epsilonTarget)
@@ -622,6 +614,7 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
             r(3) = param.yTarSigned;
         end
     else
+        disp('FINAL');
         r(1) = param.xTar;
         r(3) = param.yTar;
         
@@ -630,13 +623,11 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
 end
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%Estimation with quad prog
+%ESTIMATION WITH QUAD PROG
 if(param.selectController == 4)
     if(isempty(changed))
         changed = 0;
     end
-    
-    dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
     
     %calculate the xTar
     if(changed == 0)
@@ -660,12 +651,16 @@ if(param.selectController == 4)
     beq = [param.Bd * dHat ; [xTar ; yTar] - param.Md*dHat ];
     
     Aineq = [-eye(10) ; eye(10)];
-    low = [-xTar+eps_t 0 -yTar+eps_t 0 param.angCond 0 param.angCond 0 -param.ul']';
+    low = [xTar-eps_t 0 yTar-eps_t 0 param.angCond 0 param.angCond 0 -param.ul']';
     high = [xTar+eps_t param.eps_r yTar+eps_t param.eps_r param.angCond param.eps_r param.angCond param.eps_r param.uh']';
     bineq = [low+[param.Cd*dHat ; 0 ; 0] ; high-[param.Cd*dHat ; 0 ; 0] ];
     
     [r,~,flag] = quadprog(H,f,Aineq,bineq,Aeq,beq,[],[],[]);
-    
+%     if(flag == -2)
+%         r(1) = xTar;
+%         r(3) = yTar;
+%         
+%     end
     
 %     if(flag == -2)
 %         [r,~,flag] = quadprog(H,f,Aineq,bineq,[],[],[],[],[]);
@@ -896,7 +891,7 @@ u =U(1:param.m,:);
 dist = sqrt((currentX(1)-param.xTar)^2 + (currentX(3)-param.yTar)^2);
 
 % 
-% if(dist < param.closeToTarget || checkCloseTar == 1)
+%if(dist < param.closeToTarget || checkCloseTar == 1)
 %     u = -param.K_LQR * (currentX - param.xTarget); 
 %     checkCloseTar = 1;
 % end

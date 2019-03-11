@@ -10,18 +10,19 @@ f = zeros(10,1);
 r = zeros(10,1);
 
 
-eps_t = 2*param.eps_t/sqrt(2);
+eps_t = (param.eps_t)/sqrt(2);
 persistent changed
 
+ dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
+
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%Just change the target
+%JUST CHANGE THE TARGET FROM THE MIDDLE TO THE END
 if(param.selectController == 1 || param.selectController == 2 || param.selectController == 3)
     %nothing
     if(isempty(changed))
         changed = 0;
     end
     
-    dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
     fprintf('Distance :%f \n', dist);
     if(changed == 0)
         if(dist < param.epsilonTarget)
@@ -33,6 +34,7 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
             r(3) = param.yTarSigned;
         end
     else
+        disp('FINAL');
         r(1) = param.xTar;
         r(3) = param.yTar;
         
@@ -41,13 +43,11 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
 end
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%Estimation with quad prog
+%ESTIMATION WITH QUAD PROG
 if(param.selectController == 4)
     if(isempty(changed))
         changed = 0;
     end
-    
-    dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
     
     %calculate the xTar
     if(changed == 0)
@@ -71,12 +71,16 @@ if(param.selectController == 4)
     beq = [param.Bd * dHat ; [xTar ; yTar] - param.Md*dHat ];
     
     Aineq = [-eye(10) ; eye(10)];
-    low = [-xTar+eps_t 0 -yTar+eps_t 0 param.angCond 0 param.angCond 0 -param.ul']';
+    low = [xTar-eps_t 0 yTar-eps_t 0 param.angCond 0 param.angCond 0 -param.ul']';
     high = [xTar+eps_t param.eps_r yTar+eps_t param.eps_r param.angCond param.eps_r param.angCond param.eps_r param.uh']';
     bineq = [low+[param.Cd*dHat ; 0 ; 0] ; high-[param.Cd*dHat ; 0 ; 0] ];
     
     [r,~,flag] = quadprog(H,f,Aineq,bineq,Aeq,beq,[],[],[]);
-    
+%     if(flag == -2)
+%         r(1) = xTar;
+%         r(3) = yTar;
+%         
+%     end
     
 %     if(flag == -2)
 %         [r,~,flag] = quadprog(H,f,Aineq,bineq,[],[],[],[],[]);
