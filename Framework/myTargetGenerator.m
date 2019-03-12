@@ -13,7 +13,7 @@ r = zeros(10,1);
 eps_t = (param.eps_t)/sqrt(2);
 persistent changed
 
- dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
+dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
 dist_final = sqrt((xHat(1)-param.xTar)^2 + (xHat(3)-param.yTar)^2);
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -26,18 +26,24 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
     
     fprintf('Distance Middle :%f | Distance Final :%f\n', dist,dist_final);
     if(changed == 0)
-        if(dist < param.epsilonTarget)
+        if(dist < param.epsilonTarget)%Change target to the final
             r(1) = param.xTar;
             r(3) = param.yTar;
-            changed = 1;
+            changed = 1;%to be sure that i am not going to change again the target
         else
-            r(1) = param.xTarSigned;
+            r(1) = param.xTarSigned; %target still middle Point
             r(3) = param.yTarSigned;
         end
-    else
+    else %if we changed at least one time --> always final target
         r(1) = param.xTar;
         r(3) = param.yTar;
+        disp('FINAL TARGET');
         
+    end
+    
+    if(param.whichRectTarget == 1)
+       r(1) = param.xTar;
+       r(3) = param.yTar;
     end
     
 end

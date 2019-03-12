@@ -1,6 +1,13 @@
 function [ shape ] = generateShape( )
 %GENERATESHAPE Create the shape to test with
 
+            
+shape.eps_r  = 0.005;
+shape.eps_t  = 0.005;
+
+
+
+
 %default  1
 shape.c      = [0.00, 0.05;
                 0.25, 0.30;
@@ -13,16 +20,14 @@ shape.c      = [0.00, 0.05;
 shape.start  = [0.05, 0.05];
 shape.target = [0.45, 0.05];
 
+%first_rect , before middle
+shape.target= [0.2 , 0.2];
+%first_rect , after middle
+%shape.target= [0.27 , 0.26];
 
 
-
-            
-            
-            
-
-
-
-theta =0 ; %rotation from default one
+%Calculate the other constraints with rotational matrix
+theta =-pi/2 ; %rotation from default one
 R = [[cos(theta) , -sin(theta)];[sin(theta),cos(theta)]]';
 for i=1:1:6
     
@@ -50,13 +55,15 @@ end
 
 shape.c(:,2) = shape.c(:,2)+ones(6,1)*shiftY;
 shape.c(:,1) = shape.c(:,1)+ones(6,1)*shiftX;
+
 shape.start  = R*shape.start';
 shape.start = shape.start' + [shiftX ,shiftY];
+
 shape.target = R*shape.target';
 shape.target    = shape.target'+ [shiftX ,shiftY];    
 
 
-% 
+%SPECIAL CONSTRATINS
 %  % UP RIGHT
 % shape.c      = [0.05, 0.4;
 %                 0.40, 0.40;
@@ -68,13 +75,17 @@ shape.target    = shape.target'+ [shiftX ,shiftY];
 % 
 % shape.start  = [0.07, 0.38];
 % shape.target = [0.37, 0.1];
-% 
-%       
+% % %first rect before middle
+% shape.target = [0.3, 0.35];
+% % %first rect after middle
+% shape.target = [0.38, 0.35];
+
+ 
             
 
 % 
 % % BOTTOM RIGHT
-% shape.c      = [0.40, 0.40;
+%  shape.c      = [0.40, 0.40;
 %                 0.40, 0.05;
 %                 0.05, 0.05;
 %                 0.05, 0.12;
@@ -84,19 +95,31 @@ shape.target    = shape.target'+ [shiftX ,shiftY];
 % 
 % shape.start  = [0.35, 0.38];
 % shape.target = [0.07, 0.1];
+% 
+% % %first rect before middle
+% %shape.target = [0.35, 0.18];
+% % %first rect after middle
+% shape.target = [0.38, 0.08];
+
+
 %             
 % 
-% % BOTTOM LEFT
+% % % BOTTOM LEFT
 % shape.c      = [0.40, 0.05;
 %                 0.05, 0.05;
 %                 0.05, 0.4;
 %                 0.12, 0.4;
 %                 0.12, 0.12;
 %                 0.4, 0.12];
-%          
-% 
+%            %default
 % shape.start  = [0.38, 0.07];
 % shape.target = [0.07, 0.38];
+% % %first rect before middle
+%  shape.target = [0.2, 0.11];
+% % %first rect after middle
+% shape.target = [0.10, 0.11];
+
+
 % 
 % 
 % % UP LEFT
@@ -109,11 +132,13 @@ shape.target    = shape.target'+ [shiftX ,shiftY];
 %          
 % 
 % shape.start  = [0.07, 0.07];
-% shape.target = [0.37, 0.37];
-
-            
-shape.eps_r  = 0.02;
-shape.eps_t  = 0.02;
+% %second rect
+% %shape.target = [0.37, 0.37];
+% %first rect before middle
+% shape.target = [0.09,0.30]
+% %first rect after middle
+% shape.target = [0.09,0.37]
+% 
 
 
 

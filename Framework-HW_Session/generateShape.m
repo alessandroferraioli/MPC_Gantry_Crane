@@ -16,12 +16,6 @@ shape.target = [0.45, 0.05];
 
 
 
-            
-            
-            
-
-
-
 theta =0 ; %rotation from default one
 R = [[cos(theta) , -sin(theta)];[sin(theta),cos(theta)]]';
 for i=1:1:6

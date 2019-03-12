@@ -5,7 +5,7 @@ load CraneParameters;
 Ts = 1/20;
 
 param.Ts = Ts;
-[A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm*0.4,Ts);
+[A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm,Ts);
 
 param.A = A;
 param.B = B;
@@ -37,7 +37,7 @@ param.dStart = [0;0];
 param.eps_r = eps_r;
 param.eps_t = eps_t;
 param.toleranceInput = 0.00002;
-param.epsilonTarget = 0.02;%Change target
+param.epsilonTarget = 0.002;%Change target
 
 param.closeToTarget = 0.01;
 param.angCond = 0;
@@ -45,7 +45,7 @@ param.angCond = 0;
 
 param.K = [1, 0, 0, 0, 0, 0, 0, 0;
            0, 0, 1, 0, 0, 0, 0, 0];
-N =20;
+N =30;
 param.N = N;
 xTar = targetPoint(1);
 yTar = targetPoint(2);
@@ -228,7 +228,7 @@ if(abs(x1-x2) < 10^(-10))
 end
 
 
-shrinkFactor = 0.0;%shrink factor of the constraints
+shrinkFactor = 0.00;%shrink factor of the constraints
 
 if(caseConst == 1)
     
@@ -260,18 +260,18 @@ if(caseConst == 2)
   m2 = (y6-y1)/(x6-x1);
   
   %first rectangle
-  c1Lower = (-x3*m2+y3)*(1 + shrinkFactor);
-  c1Upper = (-x4*m2+y4)*(1 - shrinkFactor);
+  c1Lower = (-x2*m2+y2)*(1 + shrinkFactor);
+  c1Upper = (-x1*m2+y1)*(1 - shrinkFactor);
   
   c2Lower = (-x2*m1+y2)*(1 + shrinkFactor);
-  c2Upper = (-x4*m1+y4)*(1 - shrinkFactor);
+  c2Upper = (-x6*m1+y6)*(1 - shrinkFactor);
   
   %second rectangle
   c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
-  c1Upper2 = (-x6*m2+y6)*(1 - shrinkFactor);
+  c1Upper2 = (-x4*m2+y4)*(1 - shrinkFactor);
   
   c2Lower2 = (-x2*m1+y2)*(1 + shrinkFactor);
-  c2Upper2 = (-x5*m1+y5)*(1 - shrinkFactor);
+  c2Upper2 = (-x4*m1+y4)*(1 - shrinkFactor);
     
 end
 
@@ -282,10 +282,10 @@ if(caseConst == 3)
   m2 = (y2-y1)/(x2-x1);
   
   %first rectangle
-  c1Lower = (-x5*m2+y5)*(1 + shrinkFactor);
-  c1Upper = (-x2*m2+y2)*(1 - shrinkFactor);
+  c1Lower = (-x6*m2+y6)*(1 + shrinkFactor);
+  c1Upper = (-x1*m2+y1)*(1 - shrinkFactor);
   
-  c2Lower = (-x3*m1+y3)*(1 + shrinkFactor);
+  c2Lower = (-x2*m1+y2)*(1 + shrinkFactor);
   c2Upper = (-x1*m1+y1)*(1 - shrinkFactor);
   
   %second rectangle
@@ -369,8 +369,7 @@ if(caseConst == 6)
     D(3,5) = r;
     D(4,3) = 1;
     D(4,7) = r;
-    
-    
+  
 end
 
 
@@ -397,9 +396,7 @@ if(caseConst == 7)
     D(3,5) = r;
     D(4,3) = 1;
     D(4,7) = r;
-    
-  
-    
+ 
 end
 
 
@@ -426,22 +423,189 @@ if(caseConst == 8)
     D(3,5) = r;
     D(4,3) = 1;
     D(4,7) = r;
-    
+
+end
 
 
+
+
+%CHEK WHERE IS THE TARGET RESPECT TO THE RECTANGLE 
+
+
+if(caseConst == 1)
+
+    respect_rectangles = (xTar - x5)*(y5 - y6) - (yTar -y5)*(x5-x6);
+    
+    if(respect_rectangles >0)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+    
+end
+
+
+if(caseConst == 2)
+respect_rectangles = (xTar - x5)*(y5 - y6) - (yTar -y6)*(x5-x6);
+    
+    if(respect_rectangles > 0)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+    
+end
+
+
+if(caseConst == 3)
+    %NB we have - cause this shape is obtained by a rotation of pi/2
+    respect_rectangles = -((xTar - x5)*(y5 - y6) - (yTar -y5)*(x5-x6));
+    disp(respect_rectangles);
+    if(respect_rectangles < 0)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+  
+end
+
+if(caseConst == 4)
+    respect_rectangles = -((xTar - x5)*(y5 - y6) - (yTar -y5)*(x5-x6));
+    
+    if(respect_rectangles <0)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+    
+
+    
+end
+
+if(caseConst == 5)
+    
+    if(yTar < y5 && xTar>x5)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
     
     
+end
+
+
+if(caseConst == 6)
+    if(yTar > y5 && xTar<x5)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+
+  
+end
+
+
+if(caseConst == 7)
+    
+    if(yTar < y5 && xTar<x5)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+ 
+end
+
+
+if(caseConst == 8)
+    
+    if(yTar > y5 && xTar>x5)
+        %second rect
+        
+        param.xTarSigned = (x5 + x2)*0.5;
+        param.yTarSigned = (y5 + y2)*0.5;
+        param.whichRectTarget = 2;
+        disp('TARGET IS IN THE SECOND RECT');
+    else
+        %first rect
+        disp('TARGET IS IN THE FIRST RECT');
+        param.whichRectTarget = 1;
+        param.xTarSigned = xTar;
+        param.yTarSigned = yTar;
+    end
+
 end
 
 
 
 
 
-
-%-----------------using middle point
-
-param.xTarSigned = (x5 + x2)*0.5;
-param.yTarSigned = (y5 + y2)*0.5;
+% %-----------------using middle point
+% 
+% param.xTarSigned = (x5 + x2)*0.5;
+% param.yTarSigned = (y5 + y2)*0.5;
 
 %-----------------using intersection 
 
@@ -517,9 +681,9 @@ param.D2 = D2;
 %+++++++++++++++++++++++++++++++++++++++++++matrix 1
 % Declare penalty matrices and tune them here:
 Q=C'*C;
-Q(1,1) = 1;
+Q(1,1) = 3;
 Q(2,2) = 1;
-Q(3,3) = 1;
+Q(3,3) = 3;
 Q(2,2) = 1;
 
 weightInput = 0.01;
@@ -599,7 +763,7 @@ r = zeros(10,1);
 eps_t = (param.eps_t)/sqrt(2);
 persistent changed
 
- dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
+dist = sqrt((xHat(1)-param.xTarSigned)^2 + (xHat(3)-param.yTarSigned)^2);
 dist_final = sqrt((xHat(1)-param.xTar)^2 + (xHat(3)-param.yTar)^2);
 
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -612,18 +776,24 @@ if(param.selectController == 1 || param.selectController == 2 || param.selectCon
     
     fprintf('Distance Middle :%f | Distance Final :%f\n', dist,dist_final);
     if(changed == 0)
-        if(dist < param.epsilonTarget)
+        if(dist < param.epsilonTarget)%Change target to the final
             r(1) = param.xTar;
             r(3) = param.yTar;
-            changed = 1;
+            changed = 1;%to be sure that i am not going to change again the target
         else
-            r(1) = param.xTarSigned;
+            r(1) = param.xTarSigned; %target still middle Point
             r(3) = param.yTarSigned;
         end
-    else
+    else %if we changed at least one time --> always final target
         r(1) = param.xTar;
         r(3) = param.yTar;
+        disp('FINAL TARGET');
         
+    end
+    
+    if(param.whichRectTarget == 1)
+       r(1) = param.xTar;
+       r(3) = param.yTar;
     end
     
 end
@@ -812,21 +982,14 @@ dist_middle = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2
 dist_final = sqrt((x_hat(1)-param.xTar)^2 + (x_hat(3)-param.yTar)^2);
 
 xStart = zeros(8,1);
-if(checkChangeRect == 0)
-    if(dist_middle < param.epsilonTarget)
+if(checkChangeRect == 0 )
+    if(dist_middle < param.epsilonTarget && param.whichRectTarget == 2)
         %Second rect constr
       
         %Recalculate the constraits
         [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
         [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
         [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
-%         
-%         F = param.F2;
-%         J = param.J2;
-%         L = param.L2;
-%         EE = param.EE2;
-%         bb = param.bb2;
-%         newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
 
         xStart(1) = param.xTarSigned;
         xStart(3) = param.yTarSigned;
@@ -838,13 +1001,6 @@ if(checkChangeRect == 0)
         [Dt,Et,bt]=genStageConstraints(param.A,param.B,param.D,param.cl1,param.ch1,ul,uh);
         [DD,EE,newbb]=genTrajectoryConstraints(Dt,Et,bt,param.N);
         [F,J,L]=genConstraintMatrices(DD,EE,param.Gamma,param.Phi,param.N);
-        
-%         F = param.F;
-%         J = param.J;
-%         L = param.L;
-%         bb = param.bb;
-%         EE = param.EE;
-%         newbb = bb - EE*kron(ones(param.N,1),uCurrentTarget);
 
         xStart = param.xStart;
     end
@@ -854,15 +1010,12 @@ else
         [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
         [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
 
-%         F = param.F2;
-%         J = param.J2;
-%         L = param.L2;
-%         EE = param.EE2;
-%         bb = param.bb2;
-%         newbb = bb - kron(ones(param.N,1),uCurrentTarget);
+        xStart(1) = param.xTarSigned;
+        xStart(3) = param.yTarSigned;
 
-    xStart(1) = param.xTarSigned;
-    xStart(3) = param.yTarSigned;
+end
+if(param.whichRectTarget == 1)
+     xStart = param.xStart;
 
 end
 
@@ -894,22 +1047,23 @@ end
 % end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  %Stop do everything close to the Tar
-if(dist_final < param.closeToTarget || checkCloseTar == 1)
-   u = zeros(2,1);%stop do everything 
-   checkCloseTar = 1;
-end
+% if(dist_final < param.closeToTarget || checkCloseTar == 1)
+%    u = zeros(2,1);%stop do everything 
+%    checkCloseTar = 1;
+% end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %Switch to LQR if close to the solution
              
-if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
-    disp('USING LQR CLOSE TO THE SOLUTION FINAL');
-    u = -param.K_LQR * (currentX - param.xTarget); 
-    checkCloseTar = 1;
-end
+% if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+%     disp('USING LQR CLOSE TO THE FINAL SOLUTIO');
+%     u = -param.K_LQR * (currentX - param.xTarget); 
+%     checkCloseTar = 1;
+% end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %BACKUP : Just use LQR 
-if( param.backupController == 1)    
-    u = -param.K_LQR * (currentX - xCurrentTarget); 
+if( param.backupController == 1)   
+   disp('BACKUP - LQR WITHOUT CONSTRAINTS');
+    u = -param.K_LQR * (currentX - param.xTarget); 
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
