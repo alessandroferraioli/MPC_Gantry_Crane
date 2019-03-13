@@ -150,7 +150,7 @@ disp('Eigen value LTR ');
 disp(eig(Atilde' - L_LTR*Ctilde));
 
 %input constraints
-inputConst  = 0.8 ;
+inputConst  = 0.9 ;
 ul=[-inputConst;-inputConst];
 uh=[inputConst;inputConst];
 
@@ -228,7 +228,7 @@ if(abs(x1-x2) < 10^(-10))
 end
 
 
-shrinkFactor = 0.00;%shrink factor of the constraints
+shrinkFactor = 0.01;%shrink factor of the constraints
 
 if(caseConst == 1)
     
@@ -680,13 +680,18 @@ param.D2 = D2;
 
 %+++++++++++++++++++++++++++++++++++++++++++matrix 1
 % Declare penalty matrices and tune them here:
-Q=C'*C;
-Q(1,1) = 3;
-Q(2,2) = 1;
-Q(3,3) = 3;
-Q(2,2) = 1;
+Q=eye(8);
+% Q(1,1) = 3;
+% Q(2,2) = 1;
+% Q(3,3) = 3;
+% Q(2,2) = 1;
 
-weightInput = 0.01;
+Q(1,1) = 10;
+Q(3,3) = 10;
+Q(5,5) = 5;
+Q(7,7) = 5;
+
+weightInput = 0.5;
 R=eye(2)*weightInput; 
 P=Q; % terminal weight
 
@@ -1023,9 +1028,17 @@ end
 f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
 RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
 iA = false(size(newbb));
-[U,~,~]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
-
+[U,~,value]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
 u =U(1:param.m,:);
+
+if(value ~= 0)
+    u = zeros(2,1);
+    
+end
+if(abs(u(1))>10 || abs(u(2))>10)
+        u = zeros(2,1);
+
+end
 
 if(param.selectController == 6)
 

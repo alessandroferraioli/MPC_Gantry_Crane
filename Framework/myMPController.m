@@ -71,9 +71,17 @@ end
 f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
 RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
 iA = false(size(newbb));
-[U,~,~]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
-
+[U,~,value]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
 u =U(1:param.m,:);
+
+if(value ~= 0)
+    u = zeros(2,1);
+    
+end
+if(abs(u(1))>10 || abs(u(2))>10)
+        u = zeros(2,1);
+
+end
 
 if(param.selectController == 6)
 

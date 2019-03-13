@@ -21,13 +21,13 @@ shape.start  = [0.05, 0.05];
 shape.target = [0.45, 0.05];
 
 %first_rect , before middle
-shape.target= [0.2 , 0.2];
+%shape.target= [0.2 , 0.2];
 %first_rect , after middle
 %shape.target= [0.27 , 0.26];
 
 
 %Calculate the other constraints with rotational matrix
-theta =-pi/2 ; %rotation from default one
+theta = pi/2 ; %rotation from default one
 R = [[cos(theta) , -sin(theta)];[sin(theta),cos(theta)]]';
 for i=1:1:6
     
@@ -65,20 +65,20 @@ shape.target    = shape.target'+ [shiftX ,shiftY];
 
 %SPECIAL CONSTRATINS
 %  % UP RIGHT
-% shape.c      = [0.05, 0.4;
-%                 0.40, 0.40;
-%                 0.4, 0.05;
-%                 0.33, 0.05;
-%                 0.33, 0.32;
-%                 0.05, 0.32];
-%          
-% 
-% shape.start  = [0.07, 0.38];
-% shape.target = [0.37, 0.1];
-% % %first rect before middle
-% shape.target = [0.3, 0.35];
-% % %first rect after middle
-% shape.target = [0.38, 0.35];
+shape.c      = [0.05, 0.4;
+                0.40, 0.40;
+                0.4, 0.05;
+                0.33, 0.05;
+                0.33, 0.32;
+                0.05, 0.32];
+         
+
+shape.start  = [0.07, 0.38];
+shape.target = [0.37, 0.1];
+% %first rect before middle
+%shape.target = [0.3, 0.35];
+% %first rect after middle
+%shape.target = [0.38, 0.35];
 
  
             
