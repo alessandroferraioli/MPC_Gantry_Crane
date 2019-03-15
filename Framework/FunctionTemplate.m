@@ -1,6 +1,5 @@
 
 function [ param ] = mySetup(c, startingPoint, targetPoint, eps_r, eps_t)
-%generate matrix of dynamics
 load CraneParameters;
 Ts = 1/20;
 
@@ -10,7 +9,22 @@ param.Ts = Ts;
 param.A = A;
 param.B = B;
 param.C = C;
+%parameters 
+len = 0.47;
+param.m = size(B,2);
 
+N =30;
+param.N = N;
+
+param.K = [1, 0, 0, 0, 0, 0, 0, 0;
+           0, 0, 1, 0, 0, 0, 0, 0];
+
+xTar = targetPoint(1);
+yTar = targetPoint(2);
+param.xTar = targetPoint(1);
+param.yTar = targetPoint(2);
+
+%% ++++++++++++++++++SELECT DIFFERENT  CONTROLLER+++++++++++++++++++++
 %1 nothing
 %2 state estimator
 %3 state estimator + disturbance estimator
@@ -22,6 +36,8 @@ param.selectController = selectController;
 %LQR BackupController
 param.backupController = 0;
 
+
+%% +++++++++++++++++++ MATRICES OF MEASURE ++++++++++++++++++++++++++++++
 %Measure matrices
 Mx = zeros(2,8);
 Mx(1,1) = 1; %measure of x
@@ -33,7 +49,7 @@ Md = eye(2);
 param.Md = Md;
 param.dStart = [0;0];
 
-%TOLERANCES
+%% +++++++++++++++++++TOLERANCE++++++++++++++++++++++++++
 param.eps_r = eps_r;
 param.eps_t = eps_t;
 param.toleranceInput = 0.00002;
@@ -42,21 +58,12 @@ param.epsilonTarget = 0.002;%Change target
 param.closeToTarget = 0.01;
 param.angCond = 0;
 
+param.tolerance = 10^-2;
 
-param.K = [1, 0, 0, 0, 0, 0, 0, 0;
-           0, 0, 1, 0, 0, 0, 0, 0];
-N =30;
-param.N = N;
-xTar = targetPoint(1);
-yTar = targetPoint(2);
-param.xTar = targetPoint(1);
-param.yTar = targetPoint(2);
 
-%parameters 
-len = 0.47;
-param.m = size(B,2);
 
-%target point
+
+%% ++++++++++++++++++  POINTS ++++++++++++++++++++++++++++++++++
 xTarget = zeros(8,1);
 xTarget(1,1) = targetPoint(1);
 xTarget(3,1) = targetPoint(2);
@@ -68,9 +75,7 @@ xStart (1,1) = startingPoint(1);
 xStart (3,1) = startingPoint(2);
 param.xStart = xStart;
 
-
-
-%Disturbance
+%% ++++++++++++++++++DISTURBANCE DYNAMICS+++++++++++++++++++++++++++++++
 Cd = zeros(8,2);
 Cd(1,1) = 1; %disturbance on x
 Cd(3,2) = 1; %disturbance on y;
@@ -81,14 +86,12 @@ Bd(1,1) = 1;
 Bd(3,2) = 1;
 param.Bd  = Bd;
 
-
-
 Md = eye(2);
 param.Md = Md;
 param.dStart = [0;0];
 
 
-%tilde system
+%% +++++++++++++++++++ AUGMENTED SYSTEM ++++++++++++++++++++++++
 Atilde = [[A , Bd];[zeros(2,8) , eye(2)]];
 Ctilde = [C , Cd];
 Btilde = [B ; zeros(2)];
@@ -103,9 +106,7 @@ param.Btilde = Btilde;
 param.Ctilde = Ctilde;
 
 
-%observator
-
-param.tolerance = 10^-2;
+%% +++++++++++++++++++ OBSERVATOR ++++++++++++++++++++++++++
 
 sigma = 10^4;
 weightLTR=eye(8);
@@ -149,7 +150,7 @@ disp(eig(Atilde' - L_LTR_tilde*Ctilde));
 disp('Eigen value LTR ');
 disp(eig(Atilde' - L_LTR*Ctilde));
 
-%input constraints
+%% +++++++++++++++++++input constraints++++++++++++++++++++++++++
 inputConst  = 0.9 ;
 ul=[-inputConst;-inputConst];
 uh=[inputConst;inputConst];
@@ -158,456 +159,82 @@ param.ul = ul;
 param.uh = uh;
 
 
-%state constraints
-x1 = c(1,1);
-y1 = c(1,2);
-
-x2 = c(2,1);
-y2 = c(2,2);
-
-x3 = c(3,1);
-y3 = c(3,2);
-
-x4 = c(4,1);
-y4 = c(4,2);
+%% ++++++++++++++++++++++++++++++STATE CONSTRAINTS ++++++++++++++++++++++
+x_vec = c(:,1);
+y_vec = c(:,2);
+x = @(i) x_vec(i);
+y = @(i) y_vec(i);
 
 x5 = c(5,1);
 y5 = c(5,2);
 
-x6 = c(6,1);
-y6 = c(6,2);
+x2 = c(2,1);
+y2 = c(2,2);
 
-caseConst = -1;
+k = @(i,j) (y(j)-y(i))/(x(j)-x(i));
+b = @(i,j) (x(j)*y(i)-x(i)*y(j))/(x(j)-x(i));
 
-
-
-%1-2
-if(abs(x2-x5) < 10^(-10))
-    if(y2>y5)
-        caseConst = 1;
-    else
-        caseConst = 2;
-    end
+if (x(1) == x(2)) || (y(1) == y(2))
+    'aligned'
+    D1 = [1 0 0 0 0 0 0 0;
+           0 0 1 0 0 0 0 0;
+           1 0 0 0 r 0 0 0;
+           0 0 1 0 0 0 r 0];
+       
+    D2 = [1 0 0 0 0 0 0 0;
+          0 0 1 0 0 0 0 0;
+          1 0 0 0 r 0 0 0;
+          0 0 1 0 0 0 r 0];
+      
+    cl1 = [min(x(6),x(2)) ; min(y(6),y(2)) ; min(x(6),x(2)) ; min(y(6),y(2))]
+    ch1 = [max(x(6),x(2)) ; max(y(6),y(2)) ; max(x(6),x(2)) ; max(y(6),y(2))] 
     
+    cl2 = [min(x(4),x(2)) ; min(y(4),y(2)) ; min(x(4),x(2)) ; min(y(4),y(2))]
+    ch2 = [max(x(4),x(2)) ; max(y(4),y(2)) ; max(x(4),x(2)) ; max(y(4),y(2))] 
+       
+else    
+    D1 = [-k(1,2) 0 1 0 0 0 0 0;
+          -k(2,3) 0 1 0 0 0 0 0;
+          -k(1,2) 0 1 0 -k(1,2)*r 0 r 0;
+          -k(2,3) 0 1 0 -k(2,3)*r 0 r 0];
+
+    cl1 = [min(b(5,6),b(1,2)) ; min(b(6,1),b(2,3)) ; min(b(5,6),b(1,2)) ; min(b(6,1),b(2,3))];
+    ch1 = [max(b(5,6),b(1,2)) ; max(b(6,1),b(2,3)) ; max(b(5,6),b(1,2)) ; max(b(6,1),b(2,3))];
+
+    D2 = [-k(1,2) 0 1 0 0 0 0 0;
+          -k(2,3) 0 1 0 0 0 0 0;
+          -k(1,2) 0 1 0 -k(1,2)*r 0 r 0;
+          -k(2,3) 0 1 0 -k(2,3)*r 0 r 0];
+
+    cl2 = [min(b(3,4),b(1,2)) ; min(b(4,5),b(2,3)) ; min(b(3,4),b(1,2)) ; min(b(4,5),b(2,3))];
+    ch2 = [max(b(3,4),b(1,2)) ; max(b(4,5),b(2,3)) ; max(b(3,4),b(1,2)) ; max(b(4,5),b(2,3))];
 end
 
 
-%3-4
-if(abs(y2-y5) < 10^(-10))
-    if(x2>x5)
-        caseConst = 3;
-    else
-        caseConst = 4;
-    end
-    
-end
-
-%5-6
-if(abs(y1-y2) < 10^(-10))
-    if(x2>x1)
-        caseConst = 5;
-    else
-        caseConst = 6;
-    end
-    
-end
-%7-8
-
-check_default = -1;
-if(abs(x1-x2) < 10^(-10))
-    if(y1>y2)
-        caseConst = 7;
-    else
-        caseConst = 8;
-        check_default = 8;
-    end
-    
-end
-
-if(caseConst == -1)
-    angle_constr = atan2(y2-y5,x2-x5);
-    disp('Angle of the straight line trough 2 and 5');
-    disp(rad2deg(angle_constr));
-    
-    if( angle_constr >0 && angle_constr < pi/2)
-        caseConst = 1;
-    end
-    
-    if (angle_constr > pi/2 && angle_constr<pi)
-        caseConst = 1;
-    end
-    
-    if (angle_constr > -pi/2 && angle_constr<0)
-        caseConst = 2;
-    end
-    
-    if (angle_constr > -pi && angle_constr<-pi/2)
-        caseConst = 4;
-    end
-end
-
-
-
-%Disp final result
-if(caseConst == 1); disp('UP'); end
-if(caseConst == 2); disp('DOWN'); end
-if(caseConst == 3); disp('RIGHT'); end
-if(caseConst == 4); disp('LEFT'); end
-if(caseConst == 5); disp('UP RIGHT'); end
-if(caseConst == 6); disp('BOTTOM LEFT'); end
-if(caseConst == 7); disp('BOTTOM RIGHT'); end
-if(caseConst == 8); disp('UP LEFT'); end
-
-
-
-shrinkFactor = 0.00;%shrink factor of the constraints
-
-
-m1 = 0;
-m2 = 0;
-
-
-
-if(caseConst == 1)
-    
-  m1 = (y2-y1)/(x2-x1);
-  m2 = (y1-y6)/(x1-x6);
-  
-  %first rectangle
-  c1Lower = (-x1*m2+y1)*(1 + shrinkFactor);
-  c1Upper = (-x2*m2+y2)*(1 - shrinkFactor);
-  
-  c2Lower = (-x6*m1+y6)*(1 + shrinkFactor);
-  c2Upper = (-x1*m1+y1)*(1 - shrinkFactor);
-  
-  %second rectangle
-  c1Lower2 = (-x4*m2+y4)*(1 + shrinkFactor);
-  c1Upper2 = (-x3*m2+y3)*(1 - shrinkFactor);
-  
-  c2Lower2 = (-x4*m1+y4)*(1 + shrinkFactor);
-  c2Upper2 = (-x2*m1+y2)*(1 - shrinkFactor);
-
-    
-    
-end
-
-
-if(caseConst == 2)
-    
-  m1 = (y1-y2)/(x2-x1);
-  m2 = (y6-y1)/(x6-x1);
-  
-  %first rectangle
-  c1Lower = (-x2*m2+y2)*(1 + shrinkFactor);
-  c1Upper = (-x1*m2+y1)*(1 - shrinkFactor);
-  
-  c2Lower = (-x2*m1+y2)*(1 + shrinkFactor);
-  c2Upper = (-x6*m1+y6)*(1 - shrinkFactor);
-  
-  %second rectangle
-  c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
-  c1Upper2 = (-x4*m2+y4)*(1 - shrinkFactor);
-  
-  c2Lower2 = (-x2*m1+y2)*(1 + shrinkFactor);
-  c2Upper2 = (-x4*m1+y4)*(1 - shrinkFactor);
-    
-end
-
-
-if(caseConst == 3)
-    
-  m1 = (y1-y6)/(x1-x6);
-  m2 = (y2-y1)/(x2-x1);
-  
-  %first rectangle
-  c1Lower = (-x6*m2+y6)*(1 + shrinkFactor);
-  c1Upper = (-x1*m2+y1)*(1 - shrinkFactor);
-  
-  c2Lower = (-x2*m1+y2)*(1 + shrinkFactor);
-  c2Upper = (-x1*m1+y1)*(1 - shrinkFactor);
-  
-  %second rectangle
-  c1Lower2 = (-x3*m2+y3)*(1 + shrinkFactor);
-  c1Upper2 = (-x2*m2+y2)*(1 - shrinkFactor);
-  
-  c2Lower2 = (-x3*m1+y3)*(1 + shrinkFactor);
-  c2Upper2 = (-x5*m1+y5)*(1 - shrinkFactor);
-    
-end
-
-if(caseConst == 4)
-    
-  m1 = (y1-y6)/(x1-x6);
-  m2 = (y2-y1)/(x2-x1);
-  
-  %first rectangle
-  c1Lower = (-x2*m2+y2)*(1 + shrinkFactor);
-  c1Upper = (-x5*m2+y5)*(1 - shrinkFactor);
-  
-  c2Lower = (-x6*m1+y6)*(1 + shrinkFactor);
-  c2Upper = (-x2*m1+y2)*(1 - shrinkFactor);
-  
-  %second rectangle
-  c1Lower2 = (-x2*m2+y2)*(1 + shrinkFactor);
-  c1Upper2 = (-x4*m2+y4)*(1 - shrinkFactor);
-  
-  c2Lower2 = (-x5*m1+y5)*(1 + shrinkFactor);
-  c2Upper2 = (-x3*m1+y3)*(1 - shrinkFactor);
-    
-end
-
-if(caseConst == 5)
-   
- %first rectangle
-    c1Lower = x6*(1 + shrinkFactor);
-    c1Upper = x3*(1 - shrinkFactor);
-    
-    c2Lower = y5*(1 + shrinkFactor);
-    c2Upper = y2*(1 - shrinkFactor);
-    
-    %second rectangle
-    c1Lower2 = x4*(1 + shrinkFactor);
-    c1Upper2 = x3*(1 - shrinkFactor);
-    
-    c2Lower2 = y3*(1 + shrinkFactor);
-    c2Upper2 = y2*(1 - shrinkFactor);
-    
-    D = zeros(6,8);
-    D(1,1) = 1;
-    D(2,3) = 1;
-    D(3,1) = 1;
-    D(3,5) = r;
-    D(4,3) = 1;
-    D(4,7) = r;
-    
-    
-end
-
-
-if(caseConst == 6)
-    
- %first rectangle
-    c1Lower = x2*(1 + shrinkFactor);
-    c1Upper = x1*(1 - shrinkFactor);
-    
-    c2Lower = y1*(1 + shrinkFactor);
-    c2Upper = y6*(1 - shrinkFactor);
-    
-    %second rectangle
-    c1Lower2 = x2*(1 + shrinkFactor);
-    c1Upper2 = x5*(1 - shrinkFactor);
-    
-    c2Lower2 = y2*(1 + shrinkFactor);
-    c2Upper2 = y3*(1 - shrinkFactor);
-    
-    D = zeros(6,8);
-    D(1,1) = 1;
-    D(2,3) = 1;
-    D(3,1) = 1;
-    D(3,5) = r;
-    D(4,3) = 1;
-    D(4,7) = r;
-  
-end
-
-
-if(caseConst == 7)
-    
-    %first rectangle
-    c1Lower = x6*(1 + shrinkFactor);
-    c1Upper = x1*(1 - shrinkFactor);
-    
-    c2Lower = y2*(1 + shrinkFactor);
-    c2Upper = y6*(1 - shrinkFactor);
-    
-    %second rectangle
-    c1Lower2 = x3*(1 + shrinkFactor);
-    c1Upper2 = x2*(1 - shrinkFactor);
-    
-    c2Lower2 = y3*(1 + shrinkFactor);
-    c2Upper2 = y4*(1 - shrinkFactor);
-    
-    D = zeros(6,8);
-    D(1,1) = 1;
-    D(2,3) = 1;
-    D(3,1) = 1;
-    D(3,5) = r;
-    D(4,3) = 1;
-    D(4,7) = r;
- 
-end
-
-
-if(caseConst == 8)
-    
-    %first rectangle
-    c1Lower = x1*(1 + shrinkFactor);
-    c1Upper = x6*(1 - shrinkFactor);
-    
-    c2Lower = y1*(1 + shrinkFactor);
-    c2Upper = y2*(1 - shrinkFactor);
-    
-    %second rectangle
-    c1Lower2 = x2*(1 + shrinkFactor);
-    c1Upper2 = x3*(1 - shrinkFactor);
-    
-    c2Lower2 = y4*(1 + shrinkFactor);
-    c2Upper2 = y3*(1 - shrinkFactor);
-    
-    D = zeros(6,8);
-    D(1,1) = 1;
-    D(2,3) = 1;
-    D(3,1) = 1;
-    D(3,5) = r;
-    D(4,3) = 1;
-    D(4,7) = r;
-
-end
-
-
-
-
-
-% %-----------------using middle point
-% 
-param.xTarSigned = (x5 + x2)*0.5;
-param.yTarSigned = (y5 + y2)*0.5;
-
-%-----------------using intersection 
-
-%m23 = (y2 - y3)/(x2 - x3);
-
-% if(x2 == x5)
-%     pointTarSigned = [x2 ; x2*m23-m23*xTar+yTar];
-%     disp('vertical');
-%     
-% else
-%     m25 = (y2-y5)/(x2-x5);
-%     ATarSigned = [[-m25 1];[-m23 1]];
-%     bTarSigned = [-m25*x5 + y5 ; -m23*xTar + yTar];
-% 
-%     pointTarSigned = ATarSigned\bTarSigned;
-% 
-% end
-% param.xTarSigned = pointTarSigned(1);
-% param.yTarSigned = pointTarSigned(2);
-
-
-if(caseConst == 1 || caseConst  == 2|| caseConst  == 3|| caseConst  == 4)
-
-    D = zeros(6,8);
-    
-    D(1,1) = -m2;
-    D(1,3) = 1;
-    
-    D(2,1) = -m1;
-    D(2,3) = 1;
-    
-    D(3,1) = -m2;
-    D(3,3) = 1;
-    D(3,5) = -len*m2;
-    D(3,7) = len;
-    
-    D(4,1) = -m1;
-    D(4,3) = 1;
-    D(4,5) = -len*m1;
-    D(4,7) = len;
-
-
-end
-
-    
-    
-D(5,5) = 1;
-D(6,7) = 1;
-D2 = D;
-
-%CHECK WHICH RECTANGLE
-dist1 = sqrt((x1-param.xTarSigned)^2 + (y1-param.yTarSigned)^2);
-dist2 = sqrt((x1-xTar)^2 + (y1-yTar)^2);
-
-%Special case , IDK it does not work
-if(check_default == 9)
-    if(yTar> y5)
-        param.whichRectTarget = 2;
-        disp('TARGET IN SECOND  RECT');
-
-    else
-        param.whichRectTarget = 1;
-        
-        if(dist1>dist2)
-            disp('TARGET IN FIRST RECT BEFORE MIDDLE');
-            param.xTarSigned = xTar;
-            param.yTarSigned = yTar;
-            
-        else
-            disp('TARGET IN FIRST RECT AFTER MIDDLE');
-            param.xTarSigned = xTar;
-            param.yTarSigned = yTar;
-        end
-    end
-    
-    
-else
-    D_check = zeros(4,2);
-    D_check(1,1) = m2;
-    D_check(1,2) = -1;
-    
-    D_check(2,1) = m1;
-    D_check(2,2) = -1;
-    
-    D_check(3,1) = -m2;
-    D_check(3,2) = 1;
-    
-    D_check(4,1) = -m1;
-    D_check(4,2) = 1;
-    
-    check_const1  = [-c1Lower;-c2Lower;c1Upper;c2Upper];
-    xstate = [xTar;yTar];
-
-    if(D_check*xstate < check_const1)
-        param.whichRectTarget = 1;
-        if(dist1>dist2)
-            disp('TARGET IN FIRST RECT BEFORE MIDDLE');
-            param.xTarSigned = xTar;
-            param.yTarSigned = yTar;
-            
-        else
-            disp('TARGET IN FIRST RECT AFTER MIDDLE');
-            param.xTarSigned = xTar;
-            param.yTarSigned = yTar;
-        end
-    else%target in second rect
-        
-        param.whichRectTarget = 2;
-        disp('TARGET IN SECOND RECT');
-    end
-
-end
-
+D_ang = [0 0 0 0 1 0 0 0;  
+         0 0 0 0 0 0 1 0];
+     
 angleDegreeConst = deg2rad(1);
-angleConstraint = [-angleDegreeConst , angleDegreeConst];
+cl_ang = [-angleDegreeConst ; -angleDegreeConst];
+ch_ang = [angleDegreeConst ; angleDegreeConst];
+% Add the angle constr
+D = [D1 ; D_ang];
+D2 = [D2 ; D_ang];
+cl1 = [cl1 ; cl_ang];
+cl2 = [cl2 ; cl_ang];
+ch1 = [ch1 ; ch_ang];
+ch2 = [ch2 ; ch_ang];
 
-
-cl1 = [c1Lower;c2Lower;c1Lower;c2Lower;angleConstraint(1);angleConstraint(1)];
-ch1 = [c1Upper;c2Upper;c1Upper;c2Upper;angleConstraint(2);angleConstraint(2)];
 param.cl1 = cl1;
 param.ch1 = ch1;
-param.D = D;
-
-%1-2 chart
-%3-4 mass
-%5-6 angle
-cl2 = [c1Lower2;c2Lower2;c1Lower2;c2Lower2;angleConstraint(1);angleConstraint(1)];
-ch2 = [c1Upper2;c2Upper2;c1Upper2;c2Upper2;angleConstraint(2);angleConstraint(2)];
 param.cl2 = cl2;
 param.ch2 = ch2;
+param.D = D;
 param.D2 = D2;
 
 
+%%  CALCULATING MATRICES OF CONSTRANTS AND PENALITY
 
-
-%+++++++++++++++++++++++++++++++++++++++++++matrix 1
 % Declare penalty matrices and tune them here:
 Q=eye(8);
 % Q(1,1) = 3;
@@ -643,8 +270,7 @@ param.Phi = Phi;
 [DD2,EE2,bb2]=genTrajectoryConstraints(Dt2,Et2,bt2,N);
 [F2,J2,L2]=genConstraintMatrices(DD2,EE2,Gamma,Phi,N);
 
-
-
+%Saving in parameters
 param.H = H;
 param.G = G;
 param.F = F;
@@ -666,7 +292,52 @@ param.EE2 = EE2;
 
 
 
-%BACKUP : Controller LQR close to the solution
+
+
+%% CHECK RECTANGLE
+
+param.xTarSigned = (x5 + x2)*0.5;
+param.yTarSigned = (y5 + y2)*0.5;
+
+
+
+start = [startingPoint(1) 0 startingPoint(2) 0 0 0 0 0]';
+target = [targetPoint(1) 0 targetPoint(2) 0 0 0 0 0]';
+
+Dt1 = Dt;
+bt1 = bt;
+if ( (Dt1*start <= bt1) & (Dt1*target <= bt1) )
+    '1 -> 1'
+    param.whichRectTarget = 1;
+    
+    param.xTarSigned = xTar;
+    param.yTarSigned = yTar;
+
+elseif (Dt2*start <= bt2) & (Dt2*target <= bt2)
+    '2 -> 2'
+    
+      param.whichRectTarget = 1;
+    
+    param.xTarSigned = xTar;
+    param.yTarSigned = yTar;
+elseif (Dt1*start <= bt1) & (Dt2*target <= bt2)
+    '1 -> 2'
+     param.whichRectTarget = 2;
+
+
+elseif (Dt2*start <= bt2) & (Dt1*target <= bt1) 
+    '2 -> 1'
+    param.whichRectTarget = 1;    
+    param.xTarSigned = xTar;
+    param.yTarSigned = yTar;
+
+end
+
+
+
+
+
+%% BACKUP : Controller LQR close to the solution
 R_backup = 0.02*eye(2);
 Q_backup = C' * C;
 
