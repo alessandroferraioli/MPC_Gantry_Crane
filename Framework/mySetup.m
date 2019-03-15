@@ -178,14 +178,14 @@ y6 = c(6,2);
 
 caseConst = -1;
 
+
+
 %1-2
 if(abs(x2-x5) < 10^(-10))
     if(y2>y5)
         caseConst = 1;
-        disp('UP');
     else
         caseConst = 2;
-        disp('DOWN');
     end
     
 end
@@ -195,10 +195,8 @@ end
 if(abs(y2-y5) < 10^(-10))
     if(x2>x5)
         caseConst = 3;
-        disp('RIGHT');
     else
         caseConst = 4;
-        disp('LEFT');
     end
     
 end
@@ -207,27 +205,67 @@ end
 if(abs(y1-y2) < 10^(-10))
     if(x2>x1)
         caseConst = 5;
-        disp('UP RIGHT');
     else
         caseConst = 6;
-        disp('BOTTOM LEFT');
     end
     
 end
 %7-8
+
+check_default = -1;
 if(abs(x1-x2) < 10^(-10))
     if(y1>y2)
         caseConst = 7;
-        disp('BOTTOM RIGHT');
     else
         caseConst = 8;
-        disp('UP LEFT');
+        check_default = 8;
     end
     
 end
 
+if(caseConst == -1)
+    angle_constr = atan2(y2-y5,x2-x5);
+    disp('Angle of the straight line trough 2 and 5');
+    disp(rad2deg(angle_constr));
+    
+    if( angle_constr >0 && angle_constr < pi/2)
+        caseConst = 1;
+    end
+    
+    if (angle_constr > pi/2 && angle_constr<pi)
+        caseConst = 1;
+    end
+    
+    if (angle_constr > -pi/2 && angle_constr<0)
+        caseConst = 2;
+    end
+    
+    if (angle_constr > -pi && angle_constr<-pi/2)
+        caseConst = 4;
+    end
+end
 
-shrinkFactor = 0.01;%shrink factor of the constraints
+
+
+%Disp final result
+if(caseConst == 1); disp('UP'); end
+if(caseConst == 2); disp('DOWN'); end
+if(caseConst == 3); disp('RIGHT'); end
+if(caseConst == 4); disp('LEFT'); end
+if(caseConst == 5); disp('UP RIGHT'); end
+if(caseConst == 6); disp('BOTTOM LEFT'); end
+if(caseConst == 7); disp('BOTTOM RIGHT'); end
+if(caseConst == 8); disp('UP LEFT'); end
+
+
+
+shrinkFactor = 0.00;%shrink factor of the constraints
+
+
+m1 = 0;
+m2 = 0;
+
+
 
 if(caseConst == 1)
     
@@ -428,183 +466,11 @@ end
 
 
 
-%CHEK WHERE IS THE TARGET RESPECT TO THE RECTANGLE 
-
-
-if(caseConst == 1)
-
-    respect_rectangles = (xTar - x5)*(y5 - y6) - (yTar -y5)*(x5-x6);
-    
-    if(respect_rectangles >0)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-    
-end
-
-
-if(caseConst == 2)
-respect_rectangles = (xTar - x5)*(y5 - y6) - (yTar -y6)*(x5-x6);
-    
-    if(respect_rectangles > 0)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-    
-end
-
-
-if(caseConst == 3)
-    %NB we have - cause this shape is obtained by a rotation of pi/2
-    respect_rectangles = -((xTar - x5)*(y5 - y6) - (yTar -y5)*(x5-x6));
-    disp(respect_rectangles);
-    if(respect_rectangles < 0)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-  
-end
-
-if(caseConst == 4)
-    respect_rectangles = -((xTar - x5)*(y5 - y6) - (yTar -y5)*(x5-x6));
-    
-    if(respect_rectangles <0)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-    
-
-    
-end
-
-if(caseConst == 5)
-    
-    if(yTar < y5 && xTar>x5)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-    
-    
-end
-
-
-if(caseConst == 6)
-    if(yTar > y5 && xTar<x5)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-
-  
-end
-
-
-if(caseConst == 7)
-    
-    if(yTar < y5 && xTar<x5)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
- 
-end
-
-
-if(caseConst == 8)
-    
-    if(yTar > y5 && xTar>x5)
-        %second rect
-        
-        param.xTarSigned = (x5 + x2)*0.5;
-        param.yTarSigned = (y5 + y2)*0.5;
-        param.whichRectTarget = 2;
-        disp('TARGET IS IN THE SECOND RECT');
-    else
-        %first rect
-        disp('TARGET IS IN THE FIRST RECT');
-        param.whichRectTarget = 1;
-        param.xTarSigned = xTar;
-        param.yTarSigned = yTar;
-    end
-
-end
-
-
-
-
 
 % %-----------------using middle point
 % 
-% param.xTarSigned = (x5 + x2)*0.5;
-% param.yTarSigned = (y5 + y2)*0.5;
+param.xTarSigned = (x5 + x2)*0.5;
+param.yTarSigned = (y5 + y2)*0.5;
 
 %-----------------using intersection 
 
@@ -654,6 +520,69 @@ end
 D(5,5) = 1;
 D(6,7) = 1;
 D2 = D;
+
+%CHECK WHICH RECTANGLE
+dist1 = sqrt((x1-param.xTarSigned)^2 + (y1-param.yTarSigned)^2);
+dist2 = sqrt((x1-xTar)^2 + (y1-yTar)^2);
+
+%Special case , IDK it does not work
+if(check_default == 9)
+    if(yTar> y5)
+        param.whichRectTarget = 2;
+        disp('TARGET IN SECOND  RECT');
+
+    else
+        param.whichRectTarget = 1;
+        
+        if(dist1>dist2)
+            disp('TARGET IN FIRST RECT BEFORE MIDDLE');
+            param.xTarSigned = xTar;
+            param.yTarSigned = yTar;
+            
+        else
+            disp('TARGET IN FIRST RECT AFTER MIDDLE');
+            param.xTarSigned = xTar;
+            param.yTarSigned = yTar;
+        end
+    end
+    
+    
+else
+    D_check = zeros(4,2);
+    D_check(1,1) = m2;
+    D_check(1,2) = -1;
+    
+    D_check(2,1) = m1;
+    D_check(2,2) = -1;
+    
+    D_check(3,1) = -m2;
+    D_check(3,2) = 1;
+    
+    D_check(4,1) = -m1;
+    D_check(4,2) = 1;
+    
+    check_const1  = [-c1Lower;-c2Lower;c1Upper;c2Upper];
+    xstate = [xTar;yTar];
+
+    if(D_check*xstate < check_const1)
+        param.whichRectTarget = 1;
+        if(dist1>dist2)
+            disp('TARGET IN FIRST RECT BEFORE MIDDLE');
+            param.xTarSigned = xTar;
+            param.yTarSigned = yTar;
+            
+        else
+            disp('TARGET IN FIRST RECT AFTER MIDDLE');
+            param.xTarSigned = xTar;
+            param.yTarSigned = yTar;
+        end
+    else%target in second rect
+        
+        param.whichRectTarget = 2;
+        disp('TARGET IN SECOND RECT');
+    end
+
+end
 
 angleDegreeConst = deg2rad(1);
 angleConstraint = [-angleDegreeConst , angleDegreeConst];

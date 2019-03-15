@@ -5,6 +5,9 @@ function [ shape ] = generateShape( )
 shape.eps_r  = 0.005;
 shape.eps_t  = 0.005;
 
+            
+% shape.eps_r  = 0.02;
+% shape.eps_t  = 0.02;
 
 
 
@@ -27,7 +30,7 @@ shape.target = [0.45, 0.05];
 
 
 %Calculate the other constraints with rotational matrix
-theta = pi/2 ; %rotation from default one
+theta = -pi/4; %rotation from default one
 R = [[cos(theta) , -sin(theta)];[sin(theta),cos(theta)]]';
 for i=1:1:6
     
@@ -63,22 +66,22 @@ shape.target = R*shape.target';
 shape.target    = shape.target'+ [shiftX ,shiftY];    
 
 
-%SPECIAL CONSTRATINS
-%  % UP RIGHT
-shape.c      = [0.05, 0.4;
-                0.40, 0.40;
-                0.4, 0.05;
-                0.33, 0.05;
-                0.33, 0.32;
-                0.05, 0.32];
-         
-
-shape.start  = [0.07, 0.38];
-shape.target = [0.37, 0.1];
-% %first rect before middle
-%shape.target = [0.3, 0.35];
-% %first rect after middle
-%shape.target = [0.38, 0.35];
+% %SPECIAL CONSTRATINS
+% %  % UP RIGHT
+% shape.c      = [0.05, 0.4;
+%                 0.40, 0.40;
+%                 0.4, 0.05;
+%                 0.33, 0.05;
+%                 0.33, 0.32;
+%                 0.05, 0.32];
+%          
+% 
+% shape.start  = [0.07, 0.38];
+% shape.target = [0.37, 0.1];
+% % %first rect before middle
+% %shape.target = [0.3, 0.35];
+% % %first rect after middle
+% %shape.target = [0.38, 0.35];
 
  
             
@@ -133,20 +136,29 @@ shape.target = [0.37, 0.1];
 % 
 % shape.start  = [0.07, 0.07];
 % %second rect
-% %shape.target = [0.37, 0.37];
-% %first rect before middle
+% shape.target = [0.37, 0.37];
+% % %first rect before middle
 % shape.target = [0.09,0.30]
-% %first rect after middle
-% shape.target = [0.09,0.37]
+% % %first rect after middle
+% %shape.target = [0.09,0.37]
 % 
-
-
-
-            
-            
-
-
-
-
-end
+% 
+% 
+% shape.c      = [0.10, 0.00;
+%                 0.0, 0.2;
+%                 0.3, 0.35;
+%                 0.35, 0.25;
+%                 0.15, 0.15;
+%                 0.2, 0.05];
+% shape.eps_r  = 0.1*0.02;
+% shape.eps_t  = 0.1*0.02;
+% shape.start  = [0.2, 0.2];
+% shape.target = [0.15, 0.05];
+%             
+%             
+% 
+% 
+% 
+% 
+% end
 
