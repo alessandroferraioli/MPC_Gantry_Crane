@@ -3,7 +3,12 @@ function [ param ] = mySetup(c, startingPoint, targetPoint, eps_r, eps_t)
 load CraneParameters;
 Ts = 1/20;
 
+
+%HW OR SW 
+param.isHardware = 1;
 param.Ts = Ts;
+
+Vm = Vm*0.3;
 [A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm,Ts);
 
 param.A = A;
@@ -13,9 +18,13 @@ param.C = C;
 len = 0.47;
 param.m = size(B,2);
 
-N =30;
-param.N = N;
-
+if(param.isHardware ==1)
+    N = 40;
+    param.N = N;
+else
+    N =30;
+    param.N = N;
+end
 param.K = [1, 0, 0, 0, 0, 0, 0, 0;
            0, 0, 1, 0, 0, 0, 0, 0];
 
@@ -36,6 +45,34 @@ param.selectController = selectController;
 %LQR BackupController
 param.backupController = 0;
 
+%CLOSE TO THE TARGET
+%-1 disactive 
+%0 u=0
+%1 LQR
+%2 PD
+param.controlCloseTarget = 2;
+
+
+
+
+if(param.isHardware == 1);disp('HARDWARE TEST');else;disp('SOFTWARE TEST');end
+
+if(param.backupController == 1)
+    disp('USING BACKUP CONTROLLER')
+    
+else
+    if(param.selectController == 1);disp('USING MPC');end
+    if(param.selectController == 2);disp('USING MPC + STATE ESTIMATOR');end
+    if(param.selectController == 3);disp('USING  MPC + STATE/DIST ESTIMATOR');end
+    if(param.selectController == 4);disp('USING MPC + STATE/DIST ESTIMATOR + TARGET');end
+    if(param.selectController == 5);disp('USING MPC + STATE ESTIMATOR + TARGET');end
+    if(param.selectController == 6);disp('USING LQR');end
+    
+    if(param.controlCloseTarget == 2);disp('USING PD CLOSE TARGET');end
+    if(param.controlCloseTarget == 1);disp('USING LQR CLOSE TARGET');end
+    if(param.controlCloseTarget == 0);disp('DISACTIVE CONTROL CLOSE TARGET');end
+    
+end
 
 %% +++++++++++++++++++ MATRICES OF MEASURE ++++++++++++++++++++++++++++++
 %Measure matrices
@@ -53,9 +90,15 @@ param.dStart = [0;0];
 param.eps_r = eps_r;
 param.eps_t = eps_t;
 param.toleranceInput = 0.00002;%saturation to 0 of the input
-param.epsilonTarget = 0.002;%Change target
 
-param.closeToTarget = 0.01; %change to LQR/PID/Nothing close to the target
+if(param.isHardware == 1)
+        param.epsilonTarget = 0.01;%Change target
+
+else
+    param.epsilonTarget = 0.002;%Change target
+    
+end
+param.closeToTarget = param.eps_t; %change to LQR/PID/Nothing close to the target
 param.angCond = 0; 
 
 param.tolerance = 10^-2;
@@ -95,8 +138,8 @@ Btilde = [B ; zeros(2)];
 addB = zeros(size(Btilde,1), size(Ctilde,2) -size(Btilde,2));
 
 
-disp('rank obsv (At,Ct)');
-disp(rank(obsv(Atilde,Ctilde)));
+% disp('rank obsv (At,Ct)');
+% disp(rank(obsv(Atilde,Ctilde)));
 
 param.Atilde = Atilde;
 param.Btilde = Btilde;
@@ -137,15 +180,15 @@ end
 
 
 
-
-disp('Eigen value place');
-disp(eig(Atilde' - L_place*Ctilde));
-
-disp('Eigen value LTR tilde');
-disp(eig(Atilde' - L_LTR_tilde*Ctilde));
-
-disp('Eigen value LTR ');
-disp(eig(Atilde' - L_LTR*Ctilde));
+% 
+% disp('Eigen value place');
+% disp(eig(Atilde' - L_place*Ctilde));
+% 
+% disp('Eigen value LTR tilde');
+% disp(eig(Atilde' - L_LTR_tilde*Ctilde));
+% 
+% disp('Eigen value LTR ');
+% disp(eig(Atilde' - L_LTR*Ctilde));
 
 %% +++++++++++++++++++input constraints++++++++++++++++++++++++++
 inputConst  = 1 ;
@@ -235,16 +278,21 @@ param.D2 = D2;
 %%  CALCULATING MATRICES OF CONSTRANTS AND PENALITY
 
 % Declare penalty matrices and tune them here:
-Q=eye(8);
-Q(1,1) = 10;
-Q(3,3) = 10;
 
-
-
-weightInput = 0.3;
-R=eye(2)*weightInput; 
-P=Q; % terminal weight
-
+if(param.isHardware == 1)
+    Q=eye(8); 
+    weightInput = 0.02;
+    R=eye(2)*weightInput;
+    P=Q; % terminal weight
+    
+else
+    Q=eye(8);
+    Q(1,1) = 10;
+    Q(3,3) = 10;
+    weightInput = 0.3;
+    R=eye(2)*weightInput;
+    P=Q; % terminal weight
+end
 
 % First rect
 [Dt,Et,bt]=genStageConstraints(A,B,D,cl1,ch1,ul,uh);

@@ -17,6 +17,11 @@ uh = param.uh + uCurrentTarget;
 
 persistent checkChangeRect %to change target just one time 
 persistent checkCloseTar  %to change controller just one time close to the targeet
+persistent prevError %used in the PD 
+
+if(isempty(prevError))
+   prevError = 0; 
+end
 
 if(isempty(checkCloseTar))
    checkCloseTar = 0; 
@@ -119,20 +124,44 @@ end
 % if(abs(u(2)) < param.toleranceInput)
 %    u(2) = 0; 
 % end
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- %Stop do everything close to the Tar
-% if(dist_final < param.closeToTarget || checkCloseTar == 1)
-%    u = zeros(2,1);%stop do everything 
-%    checkCloseTar = 1;
-% end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+%Stop do everything close to the Tar
+if(param.controlCloseTarget == 0 && param.isHardware == 1) 
+    if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+        u = zeros(2,1);%stop do everything
+        checkCloseTar = 1;
+    end
+end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %Switch to LQR if close to the solution
-             
-% if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
-%     disp('USING LQR CLOSE TO THE FINAL SOLUTIO');
-%     u = -param.K_LQR * (currentX - param.xTarget); 
-%     checkCloseTar = 1;
-% end
+
+if(param.controlCloseTarget == 1 && param.isHardware == 1)
+    if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+        disp('LQR CLOSE SOLUTION');
+        u = -param.K_LQR * (currentX - param.xTarget); 
+        checkCloseTar = 1;
+    end
+end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+%PD CONTROLLER
+Kp = 0;
+Kd = 1;
+error =  (currentX - param.xTarget);
+
+approx_deriv_err  =(error - prevError)/param.Ts;
+if(param.controlCloseTarget == 2 && param.isHardware == 1)
+    if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+        %checkChangeRect--> we need to active this control iff we changed
+        %target
+        uPID = Kp * error + Kd * approx_deriv_err;
+        u = [uPID(5);uPID(7)]; %Pd controller on error of angle
+        checkCloseTar = 1;
+        disp('PD CLOSE SOLUTION');
+    end
+end
+prevError = error;
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %BACKUP : Just use LQR 
 if( param.backupController == 1)   

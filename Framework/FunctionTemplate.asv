@@ -4,11 +4,7 @@ function [ param ] = mySetup(c, startingPoint, targetPoint, eps_r, eps_t)
 load CraneParameters;
 Ts = 1/20;
 
-
-%HW OR SW 
-param.isHardware = 1;
 param.Ts = Ts;
-
 Vm = Vm*0.3;
 [A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm,Ts);
 
@@ -19,13 +15,9 @@ param.C = C;
 len = 0.47;
 param.m = size(B,2);
 
-if(param.isHardware ==1)
-    N = 40;
-    param.N = N;
-else
-    N =30;
-    param.N = N;
-end
+N =30;
+param.N = N;
+
 param.K = [1, 0, 0, 0, 0, 0, 0, 0;
            0, 0, 1, 0, 0, 0, 0, 0];
 
@@ -54,7 +46,8 @@ param.backupController = 0;
 param.controlCloseTarget = 2;
 
 
-
+%HW OR SW 
+param.isHardware = 0;
 
 if(param.isHardware == 1);disp('HARDWARE TEST');else;disp('SOFTWARE TEST');end
 
@@ -91,15 +84,9 @@ param.dStart = [0;0];
 param.eps_r = eps_r;
 param.eps_t = eps_t;
 param.toleranceInput = 0.00002;%saturation to 0 of the input
+param.epsilonTarget = 0.002;%Change target
 
-if(param.isHardware == 1)
-        param.epsilonTarget = 0.01;%Change target
-
-else
-    param.epsilonTarget = 0.002;%Change target
-    
-end
-param.closeToTarget = param.eps_t; %change to LQR/PID/Nothing close to the target
+param.closeToTarget = 0.01; %change to LQR/PID/Nothing close to the target
 param.angCond = 0; 
 
 param.tolerance = 10^-2;
@@ -725,32 +712,30 @@ end
 % if(abs(u(2)) < param.toleranceInput)
 %    u(2) = 0; 
 % end
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-%Stop do everything close to the Tar
-if(param.controlCloseTarget == 0 && param.isHardware == 1) 
-    if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
-        u = zeros(2,1);%stop do everything
-        checkCloseTar = 1;
-    end
-end
+%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ %Stop do everything close to the Tar
+% if(dist_final < param.closeToTarget || checkCloseTar == 1)
+%    u = zeros(2,1);%stop do everything 
+%    checkCloseTar = 1;
+% end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %Switch to LQR if close to the solution
-
-if(param.controlCloseTarget == 1 && param.isHardware == 1)
-    if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
-        disp('LQR CLOSE SOLUTION');
-        u = -param.K_LQR * (currentX - param.xTarget); 
-        checkCloseTar = 1;
-    end
-end
+             
+% if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+%     disp('USING LQR CLOSE TO THE FINAL SOLUTIO');
+%     u = -param.K_LQR * (currentX - param.xTarget); 
+%     checkCloseTar = 1;
+% end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 %PD CONTROLLER
 Kp = 0;
 Kd = 1;
 error =  (currentX - param.xTarget);
 
 approx_deriv_err  =(error - prevError)/param.Ts;
-if(param.controlCloseTarget == 2 && param.isHardware == 1)
+if(param.controlCloseTarget == 2)
     if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
         %checkChangeRect--> we need to active this control iff we changed
         %target
