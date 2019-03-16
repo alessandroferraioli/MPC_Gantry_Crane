@@ -15,8 +15,8 @@ xCurrentTarget = r(1:8);
 ul = param.ul + uCurrentTarget;
 uh = param.uh + uCurrentTarget;
 
-persistent checkChangeRect
-persistent checkCloseTar 
+persistent checkChangeRect %to change target just one time 
+persistent checkCloseTar  %to change controller just one time close to the targeet
 
 if(isempty(checkCloseTar))
    checkCloseTar = 0; 
@@ -26,61 +26,79 @@ if(isempty(checkChangeRect))
    checkChangeRect = 0; 
 end
 
+recalculateConstr = 0;
+if(param.selectController == 4 || param.selectController == 5)
+    recalculateConstr = 1;        
+end
+
 dist_middle = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
 dist_final = sqrt((x_hat(1)-param.xTar)^2 + (x_hat(3)-param.yTar)^2);
 
 xStart = zeros(8,1);
-if(checkChangeRect == 0 )
-    if(dist_middle < param.epsilonTarget && param.whichRectTarget == 2)
-        %Second rect constr
-      
-        %Recalculate the constraits
-        [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
-        [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
-        [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
 
-        xStart(1) = param.xTarSigned;
-        xStart(3) = param.yTarSigned;
-        checkChangeRect = 1;
+
+%+++++++++++++++++++MPC++++++++++++++++++++++++++++++++++++++++++++
+if(param.selectController ~= 6)
+    if(checkChangeRect == 0 )
+        if(dist_middle < param.epsilonTarget && param.whichRectTarget == 2)
+            %Second rect constr
+            
+            %Recalculate the constraits
+            if(recalculateConstr == 1)
+                [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
+                [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
+                [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
+            end
+            xStart(1) = param.xTarSigned;
+            xStart(3) = param.yTarSigned;
+            checkChangeRect = 1;
+        else%else dist
+            %First rect constr
+            
+            %Recalculate the constraits
+            if(recalculateConstr == 1)
+                [Dt,Et,bt]=genStageConstraints(param.A,param.B,param.D,param.cl1,param.ch1,ul,uh);
+                [DD,EE,newbb]=genTrajectoryConstraints(Dt,Et,bt,param.N);
+                [F,J,L]=genConstraintMatrices(DD,EE,param.Gamma,param.Phi,param.N);
+            end
+            xStart = param.xStart;
+        end
     else
-        %First rect constr
-        
-        %Recalculate the constraits 
-        [Dt,Et,bt]=genStageConstraints(param.A,param.B,param.D,param.cl1,param.ch1,ul,uh);
-        [DD,EE,newbb]=genTrajectoryConstraints(Dt,Et,bt,param.N);
-        [F,J,L]=genConstraintMatrices(DD,EE,param.Gamma,param.Phi,param.N);
-
-        xStart = param.xStart;
-    end
-else
         %Second rect constr
-        [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
-        [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
-        [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
-
+        if(recalculateConstr == 1)
+            [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
+            [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
+            [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
+        end
         xStart(1) = param.xTarSigned;
         xStart(3) = param.yTarSigned;
-
-end
-if(param.whichRectTarget == 1)
-     xStart = param.xStart;
-
-end
-
-
-f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
-RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
-iA = false(size(newbb));
-[U,~,value]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
-u =U(1:param.m,:);
-
-if(value ~= 0)
-    u = zeros(2,1);
+        
+    end
+    if(param.whichRectTarget == 1)
+        xStart = param.xStart;
+        
+    end
     
-end
-if(abs(u(1))>10 || abs(u(2))>10)
-        u = zeros(2,1);
-
+    if(recalculateConstr == 1)
+        f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
+        RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
+        iA = false(size(newbb));
+        [U,~,value]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
+        u =U(1:param.m,:);
+    elseif(checkChangeRect == 1)
+        
+        f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
+        RHS = param.bb2+ param.L2*xCurrentTarget+  param.J2*xStart; %RHS of inequality
+        iA = false(size(param.bb2));
+        [U,~,value]=mpcqpsolver(param.H,f,-param.F2,-RHS,[],zeros(0,1),iA,opt);
+        u =U(1:param.m,:);
+    elseif(checkChangeRect == 0)
+        f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
+        RHS = param.bb+ param.L*xCurrentTarget+  param.J*xStart; %RHS of inequality
+        iA = false(size(param.bb));
+        [U,~,value]=mpcqpsolver(param.H,f,-param.F,-RHS,[],zeros(0,1),iA,opt);
+        u =U(1:param.m,:);
+    end
 end
 
 if(param.selectController == 6)

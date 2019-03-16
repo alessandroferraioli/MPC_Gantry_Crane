@@ -1,5 +1,6 @@
 
 function [ param ] = mySetup(c, startingPoint, targetPoint, eps_r, eps_t)
+%%
 load CraneParameters;
 Ts = 1/20;
 
@@ -25,7 +26,7 @@ param.xTar = targetPoint(1);
 param.yTar = targetPoint(2);
 
 %% ++++++++++++++++++SELECT DIFFERENT  CONTROLLER+++++++++++++++++++++
-%1 nothing
+%1 just MPC
 %2 state estimator
 %3 state estimator + disturbance estimator
 %4 state estimator + disturbance estimator + target calculator
@@ -52,11 +53,11 @@ param.dStart = [0;0];
 %% +++++++++++++++++++TOLERANCE++++++++++++++++++++++++++
 param.eps_r = eps_r;
 param.eps_t = eps_t;
-param.toleranceInput = 0.00002;
+param.toleranceInput = 0.00002;%saturation to 0 of the input
 param.epsilonTarget = 0.002;%Change target
 
-param.closeToTarget = 0.01;
-param.angCond = 0;
+param.closeToTarget = 0.01; %change to LQR/PID/Nothing close to the target
+param.angCond = 0; 
 
 param.tolerance = 10^-2;
 
@@ -86,9 +87,6 @@ Bd(1,1) = 1;
 Bd(3,2) = 1;
 param.Bd  = Bd;
 
-Md = eye(2);
-param.Md = Md;
-param.dStart = [0;0];
 
 
 %% +++++++++++++++++++ AUGMENTED SYSTEM ++++++++++++++++++++++++
@@ -106,7 +104,7 @@ param.Btilde = Btilde;
 param.Ctilde = Ctilde;
 
 
-%% +++++++++++++++++++ OBSERVATOR ++++++++++++++++++++++++++
+%% +++++++++++++++++++ OBSERVER ++++++++++++++++++++++++++
 
 sigma = 10^4;
 weightLTR=eye(8);
@@ -151,7 +149,7 @@ disp('Eigen value LTR ');
 disp(eig(Atilde' - L_LTR*Ctilde));
 
 %% +++++++++++++++++++input constraints++++++++++++++++++++++++++
-inputConst  = 0.9 ;
+inputConst  = 1 ;
 ul=[-inputConst;-inputConst];
 uh=[inputConst;inputConst];
 
@@ -160,11 +158,12 @@ param.uh = uh;
 
 
 %% ++++++++++++++++++++++++++++++STATE CONSTRAINTS ++++++++++++++++++++++
-x_vec = c(:,1);
-y_vec = c(:,2);
-x = @(i) x_vec(i);
-y = @(i) y_vec(i);
+x_array = c(:,1);
+y_array = c(:,2);
+x = @(i) x_array(i);
+y = @(i) y_array(i);
 
+%used to calculate middle point
 x5 = c(5,1);
 y5 = c(5,2);
 
@@ -176,7 +175,7 @@ b = @(i,j) (x(j)*y(i)-x(i)*y(j))/(x(j)-x(i));
 
 if (x(1) == x(2)) || (y(1) == y(2))
     'aligned'
-    D1 = [1 0 0 0 0 0 0 0;
+    D = [1 0 0 0 0 0 0 0;
            0 0 1 0 0 0 0 0;
            1 0 0 0 r 0 0 0;
            0 0 1 0 0 0 r 0];
@@ -193,10 +192,12 @@ if (x(1) == x(2)) || (y(1) == y(2))
     ch2 = [max(x(4),x(2)) ; max(y(4),y(2)) ; max(x(4),x(2)) ; max(y(4),y(2))] 
        
 else    
-    D1 = [-k(1,2) 0 1 0 0 0 0 0;
+    D = [-k(1,2) 0 1 0 0 0 0 0;
           -k(2,3) 0 1 0 0 0 0 0;
           -k(1,2) 0 1 0 -k(1,2)*r 0 r 0;
-          -k(2,3) 0 1 0 -k(2,3)*r 0 r 0];
+          -k(2,3) 0 1 0 -k(2,3)*r 0 r 0;
+          0 0 0 0 1 0 0 0;  
+         0 0 0 0 0 0 1 0];
 
     cl1 = [min(b(5,6),b(1,2)) ; min(b(6,1),b(2,3)) ; min(b(5,6),b(1,2)) ; min(b(6,1),b(2,3))];
     ch1 = [max(b(5,6),b(1,2)) ; max(b(6,1),b(2,3)) ; max(b(5,6),b(1,2)) ; max(b(6,1),b(2,3))];
@@ -204,22 +205,21 @@ else
     D2 = [-k(1,2) 0 1 0 0 0 0 0;
           -k(2,3) 0 1 0 0 0 0 0;
           -k(1,2) 0 1 0 -k(1,2)*r 0 r 0;
-          -k(2,3) 0 1 0 -k(2,3)*r 0 r 0];
+          -k(2,3) 0 1 0 -k(2,3)*r 0 r 0;
+            0 0 0 0 1 0 0 0;  
+             0 0 0 0 0 0 1 0];
 
     cl2 = [min(b(3,4),b(1,2)) ; min(b(4,5),b(2,3)) ; min(b(3,4),b(1,2)) ; min(b(4,5),b(2,3))];
     ch2 = [max(b(3,4),b(1,2)) ; max(b(4,5),b(2,3)) ; max(b(3,4),b(1,2)) ; max(b(4,5),b(2,3))];
 end
 
 
-D_ang = [0 0 0 0 1 0 0 0;  
-         0 0 0 0 0 0 1 0];
      
 angleDegreeConst = deg2rad(1);
+
 cl_ang = [-angleDegreeConst ; -angleDegreeConst];
 ch_ang = [angleDegreeConst ; angleDegreeConst];
 % Add the angle constr
-D = [D1 ; D_ang];
-D2 = [D2 ; D_ang];
 cl1 = [cl1 ; cl_ang];
 cl2 = [cl2 ; cl_ang];
 ch1 = [ch1 ; ch_ang];
@@ -237,17 +237,12 @@ param.D2 = D2;
 
 % Declare penalty matrices and tune them here:
 Q=eye(8);
-% Q(1,1) = 3;
-% Q(2,2) = 1;
-% Q(3,3) = 3;
-% Q(2,2) = 1;
-
 Q(1,1) = 10;
 Q(3,3) = 10;
-Q(5,5) = 5;
-Q(7,7) = 5;
 
-weightInput = 0.5;
+
+
+weightInput = 0.3;
 R=eye(2)*weightInput; 
 P=Q; % terminal weight
 
@@ -301,33 +296,34 @@ param.yTarSigned = (y5 + y2)*0.5;
 
 
 
-start = [startingPoint(1) 0 startingPoint(2) 0 0 0 0 0]';
-target = [targetPoint(1) 0 targetPoint(2) 0 0 0 0 0]';
+start_extended = [startingPoint(1) 0 startingPoint(2) 0 0 0 0 0]';
+target_extended = [targetPoint(1) 0 targetPoint(2) 0 0 0 0 0]';
 
-Dt1 = Dt;
-bt1 = bt;
-if ( (Dt1*start <= bt1) & (Dt1*target <= bt1) )
-    '1 -> 1'
+
+if ( (Dt*start_extended <= bt) & (Dt*target_extended <= bt) )
+    disp('TARGET FIRST RECT , START FIRST RECT');
     param.whichRectTarget = 1;
     
     param.xTarSigned = xTar;
     param.yTarSigned = yTar;
-
-elseif (Dt2*start <= bt2) & (Dt2*target <= bt2)
-    '2 -> 2'
     
-      param.whichRectTarget = 1;
+elseif (Dt2*start_extended <= bt2) & (Dt2*target_extended <= bt2)
+    disp('TARGET SECOND RECT , START SECOND RECT');
+    
+    param.whichRectTarget = 1;
     
     param.xTarSigned = xTar;
     param.yTarSigned = yTar;
-elseif (Dt1*start <= bt1) & (Dt2*target <= bt2)
-    '1 -> 2'
-     param.whichRectTarget = 2;
-
-
-elseif (Dt2*start <= bt2) & (Dt1*target <= bt1) 
-    '2 -> 1'
-    param.whichRectTarget = 1;    
+elseif (Dt*start_extended <= bt) & (Dt2*target_extended <= bt2)
+    disp('TARGET SECOND RECT , START FIRST RECT');
+    
+    param.whichRectTarget = 2;
+    
+    
+elseif (Dt2*start_extended <= bt2) & (Dt*target_extended <= bt)
+    disp('TARGET FIRST RECT , START SECOND RECT');
+    
+    param.whichRectTarget = 1;
     param.xTarSigned = xTar;
     param.yTarSigned = yTar;
 
@@ -476,18 +472,18 @@ xExtNext = zeros(10,1);
 gainObsv =  param.LTR_obsv;
 
 
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%+++++++++++++++++++++++++++++++++JUST MEASURE ++++++++++++++++++++++++++++++++++++
 if(param.selectController == 1 || param.selectController == 6)
     %no estimator
     x_hat(1:8) = y;
     x_hat(9:10) = zeros(2,1);
     
 end
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%+++++++++++++++++++++++++++++JUST STATE ESTIMATOR++++++++++++++++++++++++++++++++++++++++
 
 if(param.selectController == 2 || param.selectController == 5)
     if(isempty(check))
-        %first run , we use the xHatPrev
+        %first run , we use the xHatStartt
         lhs = y-param.C*param.xStart;
         
         xExtNext = param.A*param.xStart + param.B*u  + gainObsv*lhs ;
@@ -509,7 +505,7 @@ if(param.selectController == 2 || param.selectController == 5)
 end
 
 
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%+++++++++++++++++++++++++++++++++++STATE AND DISTURBANCE ESTIAMTOR++++++++++++++++++++++++++++++++++
 if(param.selectController == 3 || param.selectController == 4)
     if(isempty(check))
         %first run , we use the xHatPrev
@@ -572,8 +568,8 @@ xCurrentTarget = r(1:8);
 ul = param.ul + uCurrentTarget;
 uh = param.uh + uCurrentTarget;
 
-persistent checkChangeRect
-persistent checkCloseTar 
+persistent checkChangeRect %to change target just one time 
+persistent checkCloseTar  %to change controller just one time close to the targeet
 
 if(isempty(checkCloseTar))
    checkCloseTar = 0; 
@@ -583,61 +579,79 @@ if(isempty(checkChangeRect))
    checkChangeRect = 0; 
 end
 
+recalculateConstr = 0;
+if(param.selectController == 4 || param.selectController == 5)
+    recalculateConstr = 1;        
+end
+
 dist_middle = sqrt((x_hat(1)-param.xTarSigned)^2 + (x_hat(3)-param.yTarSigned)^2);
 dist_final = sqrt((x_hat(1)-param.xTar)^2 + (x_hat(3)-param.yTar)^2);
 
 xStart = zeros(8,1);
-if(checkChangeRect == 0 )
-    if(dist_middle < param.epsilonTarget && param.whichRectTarget == 2)
-        %Second rect constr
-      
-        %Recalculate the constraits
-        [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
-        [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
-        [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
 
-        xStart(1) = param.xTarSigned;
-        xStart(3) = param.yTarSigned;
-        checkChangeRect = 1;
+
+%+++++++++++++++++++MPC++++++++++++++++++++++++++++++++++++++++++++
+if(param.selectController ~= 6)
+    if(checkChangeRect == 0 )
+        if(dist_middle < param.epsilonTarget && param.whichRectTarget == 2)
+            %Second rect constr
+            
+            %Recalculate the constraits
+            if(recalculateConstr == 1)
+                [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
+                [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
+                [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
+            end
+            xStart(1) = param.xTarSigned;
+            xStart(3) = param.yTarSigned;
+            checkChangeRect = 1;
+        else%else dist
+            %First rect constr
+            
+            %Recalculate the constraits
+            if(recalculateConstr == 1)
+                [Dt,Et,bt]=genStageConstraints(param.A,param.B,param.D,param.cl1,param.ch1,ul,uh);
+                [DD,EE,newbb]=genTrajectoryConstraints(Dt,Et,bt,param.N);
+                [F,J,L]=genConstraintMatrices(DD,EE,param.Gamma,param.Phi,param.N);
+            end
+            xStart = param.xStart;
+        end
     else
-        %First rect constr
-        
-        %Recalculate the constraits 
-        [Dt,Et,bt]=genStageConstraints(param.A,param.B,param.D,param.cl1,param.ch1,ul,uh);
-        [DD,EE,newbb]=genTrajectoryConstraints(Dt,Et,bt,param.N);
-        [F,J,L]=genConstraintMatrices(DD,EE,param.Gamma,param.Phi,param.N);
-
-        xStart = param.xStart;
-    end
-else
         %Second rect constr
-        [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
-        [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
-        [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
-
+        if(recalculateConstr == 1)
+            [Dt2,Et2,bt2]=genStageConstraints(param.A,param.B,param.D2,param.cl2,param.ch2,ul,uh);
+            [DD2,EE2,newbb]=genTrajectoryConstraints(Dt2,Et2,bt2,param.N);
+            [F,J,L]=genConstraintMatrices(DD2,EE2,param.Gamma,param.Phi,param.N);
+        end
         xStart(1) = param.xTarSigned;
         xStart(3) = param.yTarSigned;
-
-end
-if(param.whichRectTarget == 1)
-     xStart = param.xStart;
-
-end
-
-
-f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
-RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
-iA = false(size(newbb));
-[U,~,value]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
-u =U(1:param.m,:);
-
-if(value ~= 0)
-    u = zeros(2,1);
+        
+    end
+    if(param.whichRectTarget == 1)
+        xStart = param.xStart;
+        
+    end
     
-end
-if(abs(u(1))>10 || abs(u(2))>10)
-        u = zeros(2,1);
-
+    if(recalculateConstr == 1)
+        f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
+        RHS = newbb+ L*xCurrentTarget+  J*xStart; %RHS of inequality
+        iA = false(size(newbb));
+        [U,~,value]=mpcqpsolver(param.H,f,-F,-RHS,[],zeros(0,1),iA,opt);
+        u =U(1:param.m,:);
+    elseif(checkChangeRect == 1)
+        
+        f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
+        RHS = param.bb2+ param.L2*xCurrentTarget+  param.J2*xStart; %RHS of inequality
+        iA = false(size(param.bb2));
+        [U,~,value]=mpcqpsolver(param.H,f,-param.F2,-RHS,[],zeros(0,1),iA,opt);
+        u =U(1:param.m,:);
+    elseif(checkChangeRect == 0)
+        f =  (param.G * (currentX-xCurrentTarget)); %linear term must be a column vector
+        RHS = param.bb+ param.L*xCurrentTarget+  param.J*xStart; %RHS of inequality
+        iA = false(size(param.bb));
+        [U,~,value]=mpcqpsolver(param.H,f,-param.F,-RHS,[],zeros(0,1),iA,opt);
+        u =U(1:param.m,:);
+    end
 end
 
 if(param.selectController == 6)

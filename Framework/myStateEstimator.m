@@ -13,18 +13,18 @@ xExtNext = zeros(10,1);
 gainObsv =  param.LTR_obsv;
 
 
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%+++++++++++++++++++++++++++++++++JUST MEASURE ++++++++++++++++++++++++++++++++++++
 if(param.selectController == 1 || param.selectController == 6)
     %no estimator
     x_hat(1:8) = y;
     x_hat(9:10) = zeros(2,1);
     
 end
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%+++++++++++++++++++++++++++++JUST STATE ESTIMATOR++++++++++++++++++++++++++++++++++++++++
 
 if(param.selectController == 2 || param.selectController == 5)
     if(isempty(check))
-        %first run , we use the xHatPrev
+        %first run , we use the xHatStartt
         lhs = y-param.C*param.xStart;
         
         xExtNext = param.A*param.xStart + param.B*u  + gainObsv*lhs ;
@@ -46,7 +46,7 @@ if(param.selectController == 2 || param.selectController == 5)
 end
 
 
-%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%+++++++++++++++++++++++++++++++++++STATE AND DISTURBANCE ESTIAMTOR++++++++++++++++++++++++++++++++++
 if(param.selectController == 3 || param.selectController == 4)
     if(isempty(check))
         %first run , we use the xHatPrev

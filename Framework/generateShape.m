@@ -1,5 +1,5 @@
 function [ shape ] = generateShape( )
-%GENERATESHAPE Create the shape to test with
+%%GENERATESHAPE Create the shape to test with
 
             
 shape.eps_r  = 0.005;
@@ -24,9 +24,9 @@ shape.start  = [0.05, 0.05];
 shape.target = [0.45, 0.05];
 
 %first_rect , before middle
-shape.target= [0.2 , 0.2];
+%shape.target= [0.2 , 0.2];
 %first_rect , after middle
-%shape.target= [0.27 , 0.26];
+shape.target= [0.28 , 0.26];
 
 
 %Calculate the other constraints with rotational matrix
@@ -34,7 +34,7 @@ shape.target= [0.2 , 0.2];
 %tested angle  0 , +-pi/4 , +-pi/2 , +- pi/6 , +-pi , +- (pi/2+pi/4) , +-
 %(pi/2 + pi/6)
 
-theta = pi/6;
+theta = 0;
 theta = -theta;%rotation from default one
 R = [[cos(theta) , -sin(theta)];[sin(theta),cos(theta)]]';
 for i=1:1:6
@@ -168,19 +168,19 @@ shape.target    = shape.target'+ [shiftX ,shiftY];
 % end
 
 
-% %% different start target pos
-% shape.c      = [ 0.03, 0.00;
-%                 0.00, 0.06;
-%                 0.06, 0.09;
-%                 0.07, 0.07;
-%                 0.03, 0.05;
-%                 0.05, 0.01];
-%        %  1-2,1-4,1-6,3-2,3-4,3-6,5-2,5-4,5-6
-% points = [ 0.03, 0.01;
-%             0.04, 0.02;
-%             0.05, 0.07;
-%             0.06, 0.08;
-%             0.01, 0.06;
-%             0.02, 0.05];
-% shape.start  = points(1,:);
-% shape.target = points(2,:);
+%% different start target pos
+shape.c      = [ 0.03, 0.00;
+                0.00, 0.06;
+                0.06, 0.09;
+                0.07, 0.07;
+                0.03, 0.05;
+                0.05, 0.01];
+       %  1-2,1-4,1-6,3-2,3-4,3-6,5-2,5-4,5-6
+points = [ 0.03, 0.01;
+            0.04, 0.02;
+            0.032, 0.052;
+            0.06, 0.08;
+            0.01, 0.06;
+            0.02, 0.05];
+shape.start  = points(1,:);
+shape.target = points(3,:);
