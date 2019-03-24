@@ -2,12 +2,12 @@ function [ shape ] = generateShape( )
 %%GENERATESHAPE Create the shape to test with
 
             
-shape.eps_r  = 0.005;
-shape.eps_t  = 0.005;
+shape.eps_r  = 0.02;
+shape.eps_t  = 0.02;
 
             
-% shape.eps_r  = 0.02;
-% shape.eps_t  = 0.02;
+shape.eps_r  = 0.02;
+shape.eps_t  = 0.02;
 
 
 
@@ -26,7 +26,7 @@ shape.target = [0.45, 0.05];
 %first_rect , before middle
 %shape.target= [0.2 , 0.2];
 %first_rect , after middle
-%shape.target= [0.28 , 0.26];
+%shape.target= [0.26 , 0.195];
 
 
 %Calculate the other constraints with rotational matrix
@@ -34,7 +34,7 @@ shape.target = [0.45, 0.05];
 %tested angle  0 , +-pi/4 , +-pi/2 , +- pi/6 , +-pi , +- (pi/2+pi/4) , +-
 %(pi/2 + pi/6)
 
-theta = 0;
+theta =0;
 theta = -theta;%rotation from default one
 R = [[cos(theta) , -sin(theta)];[sin(theta),cos(theta)]]';
 for i=1:1:6
@@ -168,7 +168,7 @@ shape.target    = shape.target'+ [shiftX ,shiftY];
 % end
 
 % 
-%% different start target pos
+% %% different start target pos
 % shape.c      = [ 0.03, 0.00;
 %                 0.00, 0.06;
 %                 0.06, 0.09;

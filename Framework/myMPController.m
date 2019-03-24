@@ -18,10 +18,17 @@ uh = param.uh + uCurrentTarget;
 persistent checkChangeRect %to change target just one time 
 persistent checkCloseTar  %to change controller just one time close to the targeet
 persistent prevError %used in the PD 
+persistent prevErrorController
+
+if(isempty(prevErrorController))
+   prevErrorController = 0; 
+end
 
 if(isempty(prevError))
    prevError = 0; 
 end
+
+
 
 if(isempty(checkCloseTar))
    checkCloseTar = 0; 
@@ -43,7 +50,7 @@ xStart = zeros(8,1);
 
 
 %+++++++++++++++++++MPC++++++++++++++++++++++++++++++++++++++++++++
-if(param.selectController ~= 6)
+if(param.selectController ~= 6 )
     if(checkChangeRect == 0 )
         if(dist_middle < param.epsilonTarget && param.whichRectTarget == 2)
             %Second rect constr
@@ -108,9 +115,21 @@ end
 
 if(param.selectController == 6)
 
-  u = -param.K_LQR * (currentX - xCurrentTarget); 
+    u = -param.K_LQR * (currentX - xCurrentTarget);
+    disp('LQR - CHANGE TARGET');
+    if(abs(u(1)) >= 1 )%control is just on x axis
+        disp('SATURATED INPUT LQR CONTROLLER');
+        u(1) = 0.8 * sign(u(1));
+    end
+    if(abs(u(2)) > 1 )%control is just on x axis
+        disp('SATURATED INPUT LQR CONTROLLER');
+        u(2) = 0.8 * sign(u(2));
+    end
     
 end
+
+
+
 
 
 
@@ -126,16 +145,15 @@ end
 % end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
 %Stop do everything close to the Tar
-if(param.controlCloseTarget == 0 && param.isHardware == 1) 
+if(param.controlCloseTarget == 0) 
     if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
         u = zeros(2,1);%stop do everything
         checkCloseTar = 1;
     end
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%Switch to LQR if close to the solution
-
-if(param.controlCloseTarget == 1 && param.isHardware == 1)
+%LQR CLOSE FINAL TARGET
+if(param.controlCloseTarget == 1 )
     if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
         disp('LQR CLOSE SOLUTION');
         u = -param.K_LQR * (currentX - param.xTarget); 
@@ -143,16 +161,14 @@ if(param.controlCloseTarget == 1 && param.isHardware == 1)
     end
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-%PD CONTROLLER
-Kp = 0;
-Kd = 1;
+%PD CONTROLLER CLOSE FINAL TARGET
+Kp = 1;
+Kd = 0.5;
 error =  (currentX - param.xTarget);
 
 approx_deriv_err  =(error - prevError)/param.Ts;
-if(param.controlCloseTarget == 2 && param.isHardware == 1)
-    if(dist_final < param.closeToTarget || checkCloseTar == 1 && checkChangeRect == 1)
+if(param.controlCloseTarget == 2 )
+    if(dist_final < param.closeToTarget || (checkCloseTar == 1 && checkChangeRect == 1))
         %checkChangeRect--> we need to active this control iff we changed
         %target
         uPID = Kp * error + Kd * approx_deriv_err;
@@ -164,9 +180,17 @@ end
 prevError = error;
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %BACKUP : Just use LQR 
-if( param.backupController == 1)   
+if( param.backupController == 1 && checkChangeRect == 0)   
    disp('BACKUP - LQR WITHOUT CONSTRAINTS');
     u = -param.K_LQR * (currentX - param.xTarget); 
+    if(abs(u(1)) >= 1 )%control is just on x axis
+        disp('SATURATED INPUT BACKUP CONTROLLER');
+       u(1) = 0.5 * sign(u(1)); 
+    end
+        if(abs(u(2)) >= 1 )%control is just on x axis
+        disp('SATURATED INPUT BACKUP CONTROLLER');
+       u(2) = 0.5 * sign(u(2)); 
+    end
 end
 %+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

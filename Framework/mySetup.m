@@ -5,10 +5,23 @@ Ts = 1/20;
 
 
 %HW OR SW 
-param.isHardware = 1;
+param.isHardware = 0;
 param.Ts = Ts;
 
-Vm = Vm*0.3;
+% if(param.isHardware == 1)
+%     Vm = Vm*0.2;
+%     Tx = Tx * 0.6;
+%     Ty = Ty * 0.6;
+% 
+% end
+% 
+    Vm = Vm*0.1;
+    Tx = Tx * 0.1;
+    Ty = Ty * 0.1;
+  m = 1*m;
+    
+
+
 [A,B,C,~] = genCraneODE(m,M,MR,r,g,Tx,Ty,Vm,Ts);
 
 param.A = A;
@@ -40,6 +53,7 @@ param.yTar = targetPoint(2);
 %4 state estimator + disturbance estimator + target calculator
 %5 state estimator + target calculator
 %6 LQR with just change of target
+
 selectController = 1;
 param.selectController = selectController;
 %LQR BackupController
@@ -50,7 +64,7 @@ param.backupController = 0;
 %0 u=0
 %1 LQR
 %2 PD
-param.controlCloseTarget = 2;
+param.controlCloseTarget =-1;
 
 
 
@@ -92,13 +106,14 @@ param.eps_t = eps_t;
 param.toleranceInput = 0.00002;%saturation to 0 of the input
 
 if(param.isHardware == 1)
-        param.epsilonTarget = 0.01;%Change target
+        param.epsilonTarget = 0.02;%Change target
 
 else
     param.epsilonTarget = 0.002;%Change target
     
 end
-param.closeToTarget = param.eps_t; %change to LQR/PID/Nothing close to the target
+%param.closeToTarget = param.eps_t; %change to LQR/PID/Nothing close to the target
+param.closeToTarget = 0.003;
 param.angCond = 0; 
 
 param.tolerance = 10^-2;
@@ -135,7 +150,6 @@ param.Bd  = Bd;
 Atilde = [[A , Bd];[zeros(2,8) , eye(2)]];
 Ctilde = [C , Cd];
 Btilde = [B ; zeros(2)];
-addB = zeros(size(Btilde,1), size(Ctilde,2) -size(Btilde,2));
 
 
 % disp('rank obsv (At,Ct)');
@@ -152,7 +166,6 @@ sigma = 10^4;
 weightLTR=eye(8);
 Wx = sigma* (B)* (B');
 Wd = sigma * Bd' * (Bd);
-W = sigma * Btilde * Btilde';
 weight = eye(8);
 
 eigDes = eig(Atilde);
@@ -167,7 +180,7 @@ L_LTR_tilde = dlqr(Atilde',Ctilde', eye(10) , weight)';
 L_LTR= [L1 ; L2];
 L_place = place(Atilde',Ctilde',eigDes)';
 
-if(selectController == 1 || selectController == 6)
+if(selectController == 1 || selectController == 6 )
     param.LTR_obsv = L_LTR_tilde;%It is not used
 end
 if(selectController ==2 || selectController ==5 )
@@ -191,7 +204,7 @@ end
 % disp(eig(Atilde' - L_LTR*Ctilde));
 
 %% +++++++++++++++++++input constraints++++++++++++++++++++++++++
-inputConst  = 1 ;
+inputConst  = 0.9 ;
 ul=[-inputConst;-inputConst];
 uh=[inputConst;inputConst];
 
@@ -215,6 +228,8 @@ y2 = c(2,2);
 k = @(i,j) (y(j)-y(i))/(x(j)-x(i));
 b = @(i,j) (x(j)*y(i)-x(i)*y(j))/(x(j)-x(i));
 
+
+
 if (x(1) == x(2)) || (y(1) == y(2))
     'aligned'
     D = [1 0 0 0 0 0 0 0;
@@ -227,11 +242,11 @@ if (x(1) == x(2)) || (y(1) == y(2))
           1 0 0 0 r 0 0 0;
           0 0 1 0 0 0 r 0];
       
-    cl1 = [min(x(6),x(2)) ; min(y(6),y(2)) ; min(x(6),x(2)) ; min(y(6),y(2))]
+    cl1 = [min(x(6),x(2)); min(y(6),y(2)) ; min(x(6),x(2)) ; min(y(6),y(2))]
     ch1 = [max(x(6),x(2)) ; max(y(6),y(2)) ; max(x(6),x(2)) ; max(y(6),y(2))] 
     
-    cl2 = [min(x(4),x(2)) ; min(y(4),y(2)) ; min(x(4),x(2)) ; min(y(4),y(2))]
-    ch2 = [max(x(4),x(2)) ; max(y(4),y(2)) ; max(x(4),x(2)) ; max(y(4),y(2))] 
+    cl2 = [min(x(4),x(2))  ; min(y(4),y(2))  ; min(x(4),x(2))  ; min(y(4),y(2)) ]
+    ch2 = [max(x(4),x(2)) ; max(y(4),y(2)); max(x(4),x(2)) ; max(y(4),y(2))] 
        
 else    
     D = [-k(1,2) 0 1 0 0 0 0 0;
@@ -262,10 +277,13 @@ angleDegreeConst = deg2rad(1);
 cl_ang = [-angleDegreeConst ; -angleDegreeConst];
 ch_ang = [angleDegreeConst ; angleDegreeConst];
 % Add the angle constr
-cl1 = [cl1 ; cl_ang];
-cl2 = [cl2 ; cl_ang];
-ch1 = [ch1 ; ch_ang];
-ch2 = [ch2 ; ch_ang];
+
+shrinkFactor = 0.0;
+param.shrinkFactor = shrinkFactor;
+cl1 = [cl1 ; cl_ang] + shrinkFactor * [1 1 1 1 0 0]';
+cl2 = [cl2 ; cl_ang] + shrinkFactor * [1 1 1 1 0 0]';
+ch1 = [ch1 ; ch_ang] - shrinkFactor * [1 1 1 1 0 0]';
+ch2 = [ch2 ; ch_ang] - shrinkFactor * [1 1 1 1 0 0]';
 
 param.cl1 = cl1;
 param.ch1 = ch1;
@@ -280,20 +298,29 @@ param.D2 = D2;
 % Declare penalty matrices and tune them here:
 
 if(param.isHardware == 1)
-    Q=eye(8); 
+    Q = eye(8);
+    Q(1,1) = 25;
+    Q(3,3) = 25;
+    Q(5,5) = 8;
+    Q(7,7) = 8;    
     weightInput = 0.02;
     R=eye(2)*weightInput;
     P=Q; % terminal weight
     
 else
     Q=eye(8);
-    Q(1,1) = 10;
-    Q(3,3) = 10;
-    weightInput = 0.3;
+    Q(1,1) = 20;
+    Q(3,3) = Q(1,1);
+    Q(5,5) = 15;
+    Q(7,7) = Q(7,7);
+    %weightInput = 0.5;
+    weightInput = 1.2;
     R=eye(2)*weightInput;
     P=Q; % terminal weight
 end
 
+disp('Matrix Q : ');disp(Q);
+disp('Matrix R : ');disp(R);
 % First rect
 [Dt,Et,bt]=genStageConstraints(A,B,D,cl1,ch1,ul,uh);
 [DD,EE,bb]=genTrajectoryConstraints(Dt,Et,bt,N);
@@ -380,9 +407,17 @@ end
 
 
 
+
 %% BACKUP : Controller LQR close to the solution
-R_backup = 0.02*eye(2);
-Q_backup = C' * C;
+
+    Q_backup=eye(8);
+    Q_backup(1,1) = 50;
+    Q_backup(3,3) = Q_backup(1,1);
+    Q_backup(5,5) = 60;
+    Q_backup(7,7) = Q_backup(7,7);
+    weightInput_backup = 1.5;
+    R_backup=eye(2)*weightInput_backup;
+
 
 param.K_LQR = dlqr(A,B,Q_backup,R_backup);
 

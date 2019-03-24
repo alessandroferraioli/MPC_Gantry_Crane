@@ -51,7 +51,7 @@ mws.reload();
 
 
 %% Setup the simulation time
-set_param(bdroot, 'StopTime', num2str(20) );
+set_param(bdroot, 'StopTime', num2str(60) );
 
 
 %% Update the controller blocks
